@@ -1,4 +1,4 @@
-# Base Zora Coin Starter Kit
+# Zora Coin Starter Kit
 
 A modern web application starter kit for creating and managing Zora coins on the Base network. Built with Next.js, RainbowKit, and wagmi.
 
