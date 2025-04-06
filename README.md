@@ -49,6 +49,12 @@ The application uses the Zora Coins SDK to interact with the Zora protocol. Here
 ```typescript
 // From CreateZoraCoin.tsx
 import { createCoinCall, getCoinCreateFromLogs } from "@zoralabs/coins-sdk";
+import { Address as ViemAddress } from "viem";
+
+// Factory and implementation addresses
+const ZORA_COIN_FACTORY_ADDRESS = "0x7777777F279eba3d3Ad8F4E708545291A6fDBA8B";
+const ZORA_COIN_IMPLEMENTATION_ADDRESS =
+    "0x7777777F279eba3d3Ad8F4E708545291A6fDBA8B";
 
 // Define coin parameters
 const coinParams = {
@@ -63,7 +69,12 @@ const coinParams = {
 const contractCallParams = createCoinCall(coinParams);
 
 // Use wagmi's useContractWrite hook to send the transaction
-const { writeContract } = useContractWrite({
+const {
+    writeContract,
+    data: hash,
+    error: writeError,
+    isPending: isWriting,
+} = useContractWrite({
     mutation: {
         onSuccess: (data) => {
             console.log("Transaction sent:", data);
@@ -78,6 +89,12 @@ const { writeContract } = useContractWrite({
     },
 });
 
+// Wait for transaction to be mined
+const { isLoading: isConfirming, isSuccess } = useTransaction({
+    hash: hash || undefined,
+    chainId: chainId,
+});
+
 // After transaction confirmation, extract the coin address from logs
 const receipt = await publicClient?.getTransactionReceipt({ hash });
 const coinDeployment = getCoinCreateFromLogs(receipt);
@@ -86,49 +103,102 @@ if (coinDeployment?.coin) {
 }
 ```
 
-### Fetching Recent Coins
+### Reading Token Details
 
 ```typescript
-// From RecentCoins.tsx
-import { getCoinsNew } from "@zoralabs/coins-sdk";
+// Token ABI for reading details
+const tokenABI = [
+    {
+        inputs: [],
+        name: "name",
+        outputs: [{ name: "", type: "string" }],
+        stateMutability: "view",
+        type: "function",
+    },
+    {
+        inputs: [],
+        name: "symbol",
+        outputs: [{ name: "", type: "string" }],
+        stateMutability: "view",
+        type: "function",
+    },
+    {
+        inputs: [],
+        name: "totalSupply",
+        outputs: [{ name: "", type: "uint256" }],
+        stateMutability: "view",
+        type: "function",
+    },
+] as const;
 
-// Fetch recent coins with retry logic
-const fetchWithRetry = async (retries = 3, delay = 2000) => {
-    for (let i = 0; i < retries; i++) {
+// Contract read hooks for token details
+const { data: tokenName, refetch: refetchName } = useContractRead({
+    address: contractAddress || undefined,
+    abi: tokenABI,
+    functionName: "name",
+    chainId: zora.id,
+});
+
+const { data: tokenSymbol, refetch: refetchSymbol } = useContractRead({
+    address: contractAddress || undefined,
+    abi: tokenABI,
+    functionName: "symbol",
+    chainId: zora.id,
+});
+
+const { data: tokenSupply, refetch: refetchSupply } = useContractRead({
+    address: contractAddress || undefined,
+    abi: tokenABI,
+    functionName: "totalSupply",
+    chainId: zora.id,
+});
+```
+
+### Error Handling and Retries
+
+```typescript
+// Helper function for exponential backoff
+const sleep = (ms: number) =>
+    new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+const retryWithBackoff = async (
+    fn: () => Promise<any>,
+    maxRetries = 3,
+    baseDelay = 1000
+) => {
+    let lastError: Error | undefined;
+    for (let i = 0; i < maxRetries; i++) {
         try {
-            const response = await getCoinsNew({
-                count: 10,
-            });
-            return response;
+            return await fn();
         } catch (error) {
-            if (i === retries - 1) throw error;
-            await new Promise((resolve) => setTimeout(resolve, delay));
+            lastError = error as Error;
+            if (
+                error instanceof Error &&
+                error.message.includes("rate limit")
+            ) {
+                const delay = baseDelay * Math.pow(2, i); // Exponential backoff
+                console.log(`Rate limit hit, retrying in ${delay}ms...`);
+                await sleep(delay);
+                continue;
+            }
+            throw error;
         }
     }
+    throw lastError;
 };
 
-// Process the response
-const response = await getCoinsNew({
-    count: 10,
-});
-if (response.data?.exploreList?.edges) {
-    const recentCoins = response.data.exploreList.edges
-        .map((edge: any) => ({
-            name: edge.node.name,
-            symbol: edge.node.symbol,
-            address: edge.node.address,
-            createdAt: edge.node.createdAt,
-            creatorAddress: edge.node.creatorAddress,
-            marketCap: edge.node.marketCap,
-            chainId: edge.node.chainId,
-        }))
-        .sort(
-            (a: Coin, b: Coin) =>
-                new Date(b.createdAt).getTime() -
-                new Date(a.createdAt).getTime()
-        );
-    setCoins(recentCoins);
-}
+// Usage in transaction receipt fetching
+const receipt = await retryWithBackoff(
+    async () => {
+        const result = await publicClient?.getTransactionReceipt({ hash });
+        if (!result) {
+            throw new Error("Receipt not found");
+        }
+        return result;
+    },
+    3, // max retries
+    2000 // base delay of 2 seconds
+);
 ```
 
 ### Key Features of the SDK Implementation
@@ -136,25 +206,422 @@ if (response.data?.exploreList?.edges) {
 1. **Error Handling and Retries**
 
     - Implements exponential backoff for API calls
+    - Detects and handles rate limits
+    - Multiple retry attempts with increasing delays
     - Graceful error handling for transaction failures
-    - Retry logic for network issues
 
 2. **Transaction Management**
 
     - Uses wagmi's hooks for transaction state management
     - Tracks transaction status and confirmation
     - Extracts contract addresses from transaction logs
+    - Handles transaction receipt fetching with retries
 
-3. **Data Processing**
+3. **Token Details Management**
 
-    - Sorts coins by creation date
-    - Formats data for display
-    - Handles optional fields like market cap
+    - Reads token details using contract ABI
+    - Manages token name, symbol, and supply
+    - Implements refetching for updated data
+    - Handles loading and error states
 
 4. **Chain Support**
     - Works across multiple EVM chains
-    - Handles chain-specific configurations
     - Supports both mainnet and testnet deployments
+    - Handles chain-specific configurations
+    - Manages chain switching and validation
+
+## Chain Configuration
+
+The application supports multiple chains with their respective RPC endpoints:
+
+### Mainnet Chains
+
+-   Base (Chain ID: 8453)
+-   Zora (Chain ID: 7777777)
+-   Optimism (Chain ID: 10)
+-   Arbitrum (Chain ID: 42161)
+-   Blast (Chain ID: 81457)
+-   Ethereum (Chain ID: 1)
+
+### Testnet Chains
+
+-   Base Sepolia (Chain ID: 84532)
+-   Zora Sepolia (Chain ID: 999)
+-   Arbitrum Sepolia (Chain ID: 421614)
+-   Blast Sepolia (Chain ID: 168587773)
+
+### RPC Configuration
+
+Each chain is configured with specific RPC endpoints and settings:
+
+```typescript
+const chainTransport = http(
+    `https://drpc.org/rpc/${process.env.NEXT_PUBLIC_DRPC_KEY}/chain-name`,
+    {
+        batch: {
+            wait: 16, // Batch requests for 16ms
+        },
+        retryCount: 3, // Retry failed requests up to 3 times
+    }
+);
+```
+
+Native RPC endpoints are used for:
+
+-   Zora: `https://rpc.zora.energy`
+-   Blast: `https://rpc.blast.io`
+
+## Extending the Application
+
+### Adding New Features
+
+#### 1. Adding a New Chain
+
+To add support for a new chain:
+
+1. Add the chain to the Wagmi configuration in `app/config/wagmi.ts`:
+
+```typescript
+const newChainTransport = http(
+    `https://drpc.org/rpc/${process.env.NEXT_PUBLIC_DRPC_KEY}/new-chain`,
+    {
+        batch: { wait: 16 },
+        retryCount: 3,
+    }
+);
+
+const newChainRpc = {
+    ...newChain,
+    transport: newChainTransport,
+};
+
+// Add to chains array
+const chains = [
+    // ... existing chains
+    newChainRpc,
+] as const;
+```
+
+2. Update the chain selector in `app/components/ChainSelector.tsx`:
+
+```typescript
+const SUPPORTED_CHAINS = [
+    // ... existing chains
+    {
+        id: NEW_CHAIN_ID,
+        name: "New Chain",
+        icon: "🟫",
+    },
+];
+```
+
+#### 2. Adding New Coin Features
+
+To add new features to coin creation:
+
+1. Extend the coin parameters in `CreateZoraCoin.tsx`:
+
+```typescript
+const coinParams = {
+    // ... existing parameters
+    newFeature: value,
+    // Add validation
+    validateNewFeature: (value: string) => {
+        // Add validation logic
+    },
+};
+```
+
+2. Update the UI to include new fields:
+
+```typescript
+<div>
+    <label>New Feature</label>
+    <input
+        type="text"
+        value={newFeature}
+        onChange={(e) => setNewFeature(e.target.value)}
+    />
+</div>
+```
+
+### Customizing the UI
+
+#### 1. Adding New UI Components
+
+The application uses Shadcn UI components. To add a new component:
+
+1. Install the component:
+
+```bash
+npx shadcn-ui@latest add component-name
+```
+
+2. Import and use in your component:
+
+```typescript
+import { ComponentName } from "@/components/ui/component-name";
+
+export function YourComponent() {
+    return <ComponentName>{/* Your content */}</ComponentName>;
+}
+```
+
+#### 2. Customizing Styles
+
+The application uses Tailwind CSS. To add custom styles:
+
+1. Add to `tailwind.config.js`:
+
+```javascript
+module.exports = {
+    theme: {
+        extend: {
+            colors: {
+                "custom-color": "#your-color",
+            },
+        },
+    },
+};
+```
+
+2. Use in your components:
+
+```typescript
+<div className="bg-custom-color text-white">{/* Your content */}</div>
+```
+
+## Implementation Details
+
+### State Management Architecture
+
+The application uses a combination of React hooks and context for state management:
+
+```typescript
+// Example of a custom hook for coin management
+export function useCoinManagement() {
+    const [coins, setCoins] = useState<Coin[]>([]);
+    const { address } = useAccount();
+
+    const fetchCoins = useCallback(async () => {
+        // Implementation
+    }, [address]);
+
+    return {
+        coins,
+        fetchCoins,
+    };
+}
+```
+
+### Error Handling Strategy
+
+The application implements a comprehensive error handling strategy:
+
+```typescript
+// Example of error handling in coin creation
+const handleCreateCoin = async () => {
+    try {
+        // Implementation
+    } catch (error) {
+        if (error instanceof Error) {
+            setError(error.message);
+        } else if (typeof error === "string") {
+            setError(error);
+        } else {
+            setError("An unknown error occurred");
+        }
+    }
+};
+```
+
+### Performance Optimization
+
+The application includes several performance optimizations:
+
+1. **Memoization**:
+
+```typescript
+const memoizedComponent = useMemo(
+    () => <ExpensiveComponent data={data} />,
+    [data]
+);
+```
+
+2. **Debouncing**:
+
+```typescript
+const debouncedSearch = useDebounce(searchTerm, 300);
+```
+
+3. **Lazy Loading**:
+
+```typescript
+const LazyComponent = dynamic(() => import("./LazyComponent"), {
+    loading: () => <LoadingSpinner />,
+});
+```
+
+## Testing Guide
+
+### Setting Up Tests
+
+1. Install testing dependencies:
+
+```bash
+npm install --save-dev jest @testing-library/react @testing-library/jest-dom
+```
+
+2. Create a test file:
+
+```typescript
+// __tests__/CreateZoraCoin.test.tsx
+import { render, screen } from "@testing-library/react";
+import { CreateZoraCoin } from "../app/components/CreateZoraCoin";
+
+describe("CreateZoraCoin", () => {
+    it("renders the form correctly", () => {
+        render(<CreateZoraCoin />);
+        expect(screen.getByLabelText("Coin Name")).toBeInTheDocument();
+    });
+});
+```
+
+### Writing Tests
+
+1. **Component Tests**:
+
+```typescript
+test("handles form submission", async () => {
+    render(<CreateZoraCoin />);
+    const submitButton = screen.getByRole("button", { name: /create/i });
+    fireEvent.click(submitButton);
+    expect(await screen.findByText(/processing/i)).toBeInTheDocument();
+});
+```
+
+2. **Hook Tests**:
+
+```typescript
+test("useCoinManagement hook", () => {
+    const { result } = renderHook(() => useCoinManagement());
+    expect(result.current.coins).toEqual([]);
+});
+```
+
+## Debugging Guide
+
+### Common Debugging Scenarios
+
+1. **Transaction Debugging**:
+
+```typescript
+// Add to your component
+useEffect(() => {
+    console.log("Transaction state:", {
+        hash,
+        isPending,
+        isSuccess,
+        error,
+    });
+}, [hash, isPending, isSuccess, error]);
+```
+
+2. **Network Debugging**:
+
+```typescript
+// Add to wagmi config
+const config = createConfig({
+    // ... other config
+    logger: {
+        warn: (message) => console.warn(message),
+        error: (message) => console.error(message),
+    },
+});
+```
+
+### Performance Profiling
+
+1. **React Profiler**:
+
+```typescript
+import { Profiler } from "react";
+
+<Profiler id="CreateZoraCoin" onRender={(...args) => console.log(args)}>
+    <CreateZoraCoin />
+</Profiler>;
+```
+
+2. **Network Profiling**:
+
+```typescript
+// Add to your API calls
+const startTime = performance.now();
+await fetchCoins();
+const endTime = performance.now();
+console.log(`API call took ${endTime - startTime}ms`);
+```
+
+## Contributing Guidelines
+
+### Code Review Process
+
+1. **Pre-commit Checks**:
+
+```bash
+# Add to package.json
+"pre-commit": "npm run lint && npm run test"
+```
+
+2. **Pull Request Template**:
+
+```markdown
+## Description
+
+[Describe your changes]
+
+## Testing
+
+-   [ ] Tested on multiple chains
+-   [ ] Added new tests
+-   [ ] Updated documentation
+
+## Screenshots
+
+[Add screenshots if applicable]
+```
+
+### Documentation Standards
+
+1. **Component Documentation**:
+
+```typescript
+/**
+ * CreateZoraCoin Component
+ *
+ * @component
+ * @example
+ * <CreateZoraCoin />
+ *
+ * @prop {string} name - Coin name
+ * @prop {string} symbol - Coin symbol
+ * @returns {JSX.Element} CreateZoraCoin component
+ */
+```
+
+2. **Function Documentation**:
+
+```typescript
+/**
+ * Creates a new Zora coin
+ *
+ * @async
+ * @function createCoin
+ * @param {CoinParams} params - Coin creation parameters
+ * @returns {Promise<TransactionReceipt>} Transaction receipt
+ * @throws {Error} If coin creation fails
+ */
+```
 
 ## Prerequisites
 
