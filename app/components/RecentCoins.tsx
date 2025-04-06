@@ -143,7 +143,7 @@ export function RecentCoins() {
 
     return (
         <div className="p-4 bg-white rounded-lg shadow">
-            <h2 className="text-xl font-semibold mb-4">
+            <h2 className="text-xl font-semibold mb-4 text-black">
                 Recent Coins on{" "}
                 {CHAINS[chainId as keyof typeof CHAINS]?.name ||
                     "Unknown Chain"}
@@ -172,12 +172,14 @@ export function RecentCoins() {
                         >
                             <div className="flex justify-between items-start">
                                 <div>
-                                    <h3 className="font-medium">{coin.name}</h3>
-                                    <p className="text-sm text-gray-500">
+                                    <h3 className="font-medium text-black">
+                                        {coin.name}
+                                    </h3>
+                                    <p className="text-sm text-gray-600">
                                         {coin.symbol}
                                     </p>
                                 </div>
-                                <div className="text-sm text-gray-500">
+                                <div className="text-sm text-gray-600">
                                     {formatDate(coin.createdAt)}
                                 </div>
                             </div>

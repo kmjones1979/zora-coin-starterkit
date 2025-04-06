@@ -61,7 +61,10 @@ export function ChainSelector() {
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="flex items-center gap-2">
+                <Button
+                    variant="outline"
+                    className="flex items-center gap-2 text-black"
+                >
                     {currentChain ? (
                         <>
                             <span>{currentChain.icon}</span>
@@ -79,7 +82,7 @@ export function ChainSelector() {
                         key={chain.id}
                         onClick={() => switchChain?.({ chainId: chain.id })}
                         className={`
-                            flex items-center gap-2
+                            flex items-center gap-2 text-black
                             ${
                                 chain.id === chainId
                                     ? "bg-gray-100 font-semibold"
