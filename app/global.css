@@ -58,6 +58,94 @@
     }
 }
 
+/* Custom styles for coin form and recent coins in dark mode */
+.dark .card {
+    @apply bg-[#1a1a1a];
+}
+
+.dark .bg-white {
+    @apply bg-[#1a1a1a];
+}
+
+.dark .bg-gray-50 {
+    @apply bg-[#1a1a1a];
+}
+
+.dark .hover\:bg-gray-50:hover {
+    @apply bg-[#222222];
+}
+
+/* Update text colors in dark mode */
+.dark .text-black {
+    @apply text-white;
+}
+
+.dark .text-gray-600 {
+    @apply text-gray-300;
+}
+
+.dark .text-gray-700 {
+    @apply text-gray-200;
+}
+
+.dark .text-yellow-700 {
+    @apply text-yellow-300;
+}
+
+.dark .text-yellow-50 {
+    @apply text-yellow-100;
+}
+
+/* Update text colors for better readability in light mode */
+.text-2xl {
+    @apply text-gray-900;
+}
+
+.font-bold {
+    @apply text-gray-900;
+}
+
+.text-xl {
+    @apply text-gray-900;
+}
+
+.font-semibold {
+    @apply text-gray-900;
+}
+
+.card-title {
+    @apply text-gray-900;
+}
+
+.text-sm {
+    @apply text-gray-700;
+}
+
+/* Dark mode text color overrides */
+.dark .text-2xl {
+    @apply text-white;
+}
+
+.dark .font-bold {
+    @apply text-white;
+}
+
+.dark .text-xl {
+    @apply text-white;
+}
+
+.dark .font-semibold {
+    @apply text-white;
+}
+
+.dark .card-title {
+    @apply text-white;
+}
+
+.dark .text-sm {
+    @apply text-gray-300;
+}
+
 .mx-auto {
     margin-left: auto;
     margin-right: auto;
