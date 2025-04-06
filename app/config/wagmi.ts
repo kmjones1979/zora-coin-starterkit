@@ -16,7 +16,7 @@ import {
 
 // Create custom transport for each chain
 const baseTransport = http(
-    `https://base-mainnet.g.alchemy.com/v2/${process.env.NEXT_PUBLIC_ALCHEMY_BASE_KEY}`,
+    `https://drpc.org/rpc/${process.env.NEXT_PUBLIC_DRPC_KEY}/base`,
     {
         batch: {
             wait: 16,
@@ -26,7 +26,7 @@ const baseTransport = http(
 );
 
 const optimismTransport = http(
-    `https://opt-mainnet.g.alchemy.com/v2/${process.env.NEXT_PUBLIC_ALCHEMY_OPTIMISM_KEY}`,
+    `https://drpc.org/rpc/${process.env.NEXT_PUBLIC_DRPC_KEY}/optimism`,
     {
         batch: {
             wait: 16,
@@ -36,7 +36,7 @@ const optimismTransport = http(
 );
 
 const arbitrumTransport = http(
-    `https://arb-mainnet.g.alchemy.com/v2/${process.env.NEXT_PUBLIC_ALCHEMY_ARBITRUM_KEY}`,
+    `https://drpc.org/rpc/${process.env.NEXT_PUBLIC_DRPC_KEY}/arbitrum`,
     {
         batch: {
             wait: 16,
@@ -61,7 +61,7 @@ const blastTransport = http("https://rpc.blast.io", {
 
 // Default transports for other chains
 const mainnetTransport = http(
-    `https://eth-mainnet.g.alchemy.com/v2/${process.env.NEXT_PUBLIC_ALCHEMY_MAINNET_KEY}`,
+    `https://drpc.org/rpc/${process.env.NEXT_PUBLIC_DRPC_KEY}/ethereum`,
     {
         batch: {
             wait: 16,
@@ -71,7 +71,7 @@ const mainnetTransport = http(
 );
 
 const sepoliaTransport = http(
-    `https://eth-sepolia.g.alchemy.com/v2/${process.env.NEXT_PUBLIC_ALCHEMY_SEPOLIA_KEY}`,
+    `https://drpc.org/rpc/${process.env.NEXT_PUBLIC_DRPC_KEY}/sepolia`,
     {
         batch: {
             wait: 16,
@@ -81,7 +81,7 @@ const sepoliaTransport = http(
 );
 
 const baseSepoliaTransport = http(
-    `https://base-sepolia.g.alchemy.com/v2/${process.env.NEXT_PUBLIC_ALCHEMY_BASE_SEPOLIA_KEY}`,
+    `https://drpc.org/rpc/${process.env.NEXT_PUBLIC_DRPC_KEY}/base-sepolia`,
     {
         batch: {
             wait: 16,
@@ -91,7 +91,7 @@ const baseSepoliaTransport = http(
 );
 
 const arbitrumSepoliaTransport = http(
-    `https://arb-sepolia.g.alchemy.com/v2/${process.env.NEXT_PUBLIC_ALCHEMY_ARBITRUM_SEPOLIA_KEY}`,
+    `https://drpc.org/rpc/${process.env.NEXT_PUBLIC_DRPC_KEY}/arbitrum-sepolia`,
     {
         batch: {
             wait: 16,
