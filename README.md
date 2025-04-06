@@ -15,6 +15,11 @@ A Next.js application for creating and viewing Zora coins across multiple chains
 -   Switch between different chains to view chain-specific coins
 -   Connect with MetaMask or other Web3 wallets
 -   View transactions on chain explorers
+-   Chain selection with visual indicators
+-   Dark/Light mode support
+-   Responsive design with DaisyUI components
+-   Real-time transaction status updates
+-   Error handling with retry logic
 
 ## Architecture
 
@@ -26,6 +31,7 @@ The application is built using a modern web3 stack with the following architectu
 -   **Tailwind CSS**: Utility-first CSS framework for styling
 -   **RainbowKit**: Web3 wallet connection UI components
 -   **Shadcn UI**: Reusable UI components built with Radix UI
+-   **DaisyUI**: Styling components for responsive design
 
 ### Web3 Infrastructure
 
@@ -39,6 +45,49 @@ The application is built using a modern web3 stack with the following architectu
 -   React hooks for local state
 -   Wagmi hooks for blockchain state
 -   Context providers for global application state
+
+## UI Components
+
+### Card-based Layout
+
+The application uses DaisyUI cards for a clean, modern interface:
+
+```tsx
+<div className="card bg-white shadow-xl">
+    <div className="card-body">
+        <h2 className="card-title">Create New Coin</h2>
+        {/* Form content */}
+    </div>
+</div>
+```
+
+### Theme Support
+
+The application supports both light and dark modes with a theme toggle:
+
+```tsx
+const [theme, setTheme] = useState("light");
+const toggleTheme = () => {
+    const newTheme = theme === "light" ? "dark" : "light";
+    setTheme(newTheme);
+    document.documentElement.setAttribute("data-theme", newTheme);
+};
+```
+
+### Chain Selector
+
+A dropdown menu for selecting different chains:
+
+```tsx
+<DropdownMenu>
+    <DropdownMenuTrigger>
+        <Button variant="outline">
+            {currentChain?.name || "Select Network"}
+        </Button>
+    </DropdownMenuTrigger>
+    {/* Chain options */}
+</DropdownMenu>
+```
 
 ## Zora Coins SDK Implementation
 
@@ -799,3 +848,270 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 -   DRPC for RPC endpoints
 -   RainbowKit for wallet connection UI
 -   The Web3 community for tools and resources
+
+## Components and Hooks
+
+### Core Components
+
+#### 1. CreateZoraCoin
+
+The main component for creating new Zora coins. It manages the coin creation process and transaction states.
+
+```tsx
+// Usage
+<CreateZoraCoin />;
+
+// Props
+interface CreateZoraCoinProps {
+    onSuccess?: (hash: `0x${string}`) => void; // Optional callback after successful creation
+}
+```
+
+#### 2. CoinForm
+
+A reusable form component for coin creation with validation and error handling.
+
+```tsx
+// Usage
+<CoinForm onSuccess={handleSuccess} />
+
+// Props
+interface CoinFormProps {
+    onSuccess?: (hash: `0x${string}`) => void;
+}
+
+// Form Fields
+- name: string
+- symbol: string
+- initialSupply: string
+```
+
+#### 3. TokenDetails
+
+Displays token information including name, symbol, and total supply.
+
+```tsx
+// Usage
+<TokenDetails contractAddress="0x..." />;
+
+// Props
+interface TokenDetailsProps {
+    contractAddress: `0x${string}`;
+}
+```
+
+#### 4. ChainSelector
+
+A dropdown component for selecting different chains with visual indicators.
+
+```tsx
+// Usage
+<ChainSelector />
+
+// Features
+- Visual chain indicators
+- Chain switching
+- Network validation
+```
+
+#### 5. RecentCoins
+
+Displays a list of recently created coins with detailed information.
+
+```tsx
+// Usage
+<RecentCoins />
+
+// Features
+- Pagination
+- Chain filtering
+- Real-time updates
+```
+
+### Custom Hooks
+
+#### 1. useCoinCreation
+
+Manages the coin creation process and transaction states.
+
+```tsx
+// Usage
+const {
+    write,
+    isLoading,
+    error,
+    transactionHash,
+    status,
+    resetTransaction,
+} = useCoinCreation({
+    name: string,
+    symbol: string,
+    initialSupply: bigint,
+    address: `0x${string}`,
+});
+
+// Return Values
+- write: () => void // Function to initiate coin creation
+- isLoading: boolean // Loading state
+- error: Error | null // Error state
+- transactionHash: `0x${string}` | null // Transaction hash
+- status: string // Transaction status
+- resetTransaction: () => void // Reset transaction state
+```
+
+#### 2. useTokenDetails
+
+Fetches and manages token information.
+
+```tsx
+// Usage
+const {
+    tokenName,
+    tokenSymbol,
+    tokenSupply,
+    refetchAll,
+} = useTokenDetails({
+    contractAddress: `0x${string}`,
+});
+
+// Return Values
+- tokenName: string | null
+- tokenSymbol: string | null
+- tokenSupply: bigint | null
+- refetchAll: () => void // Refresh all token data
+```
+
+#### 3. useRetry
+
+Implements retry logic with exponential backoff.
+
+```tsx
+// Usage
+const response = await useRetry(() => getCoinsNew({ count: 10 }));
+
+// Features
+- Exponential backoff
+- Maximum retry attempts
+- Error handling
+```
+
+### UI Components
+
+#### 1. Card
+
+A reusable card component for consistent layout.
+
+```tsx
+// Usage
+<Card>
+    <CardHeader>
+        <CardTitle>Title</CardTitle>
+    </CardHeader>
+    <CardContent>
+        {/* Content */}
+    </CardContent>
+</Card>
+
+// Components
+- Card: Main container
+- CardHeader: Header section
+- CardTitle: Title text
+- CardContent: Main content area
+- CardFooter: Footer section
+```
+
+#### 2. Button
+
+A customizable button component.
+
+```tsx
+// Usage
+<Button variant="default" size="lg">
+    Click me
+</Button>;
+
+// Props
+interface ButtonProps {
+    variant?: "default" | "outline" | "ghost";
+    size?: "default" | "sm" | "lg";
+    disabled?: boolean;
+}
+```
+
+#### 3. Input
+
+A styled input component with validation.
+
+```tsx
+// Usage
+<Input
+    type="text"
+    placeholder="Enter value"
+    value={value}
+    onChange={handleChange}
+/>;
+
+// Props
+interface InputProps {
+    type?: string;
+    placeholder?: string;
+    value: string;
+    onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+}
+```
+
+### Component Integration
+
+#### Example: Creating a New Coin
+
+```tsx
+function CreateCoinPage() {
+    const { address } = useAccount();
+    const [name, setName] = useState("");
+    const [symbol, setSymbol] = useState("");
+    const [initialSupply, setInitialSupply] = useState("");
+
+    const { write, isLoading, error, transactionHash } = useCoinCreation({
+        name,
+        symbol,
+        initialSupply: BigInt(initialSupply || "0"),
+        address: address || "0x0000000000000000000000000000000000000000",
+    });
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>Create New Coin</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <CoinForm
+                    onSuccess={() => {
+                        // Handle success
+                    }}
+                />
+            </CardContent>
+        </Card>
+    );
+}
+```
+
+#### Example: Viewing Token Details
+
+```tsx
+function TokenPage({ contractAddress }: { contractAddress: `0x${string}` }) {
+    const { tokenName, tokenSymbol, tokenSupply, refetchAll } = useTokenDetails(
+        { contractAddress }
+    );
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>Token Details</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <TokenDetails contractAddress={contractAddress} />
+            </CardContent>
+        </Card>
+    );
+}
+```
