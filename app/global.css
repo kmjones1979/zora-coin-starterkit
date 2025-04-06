@@ -146,6 +146,19 @@
     @apply text-gray-300;
 }
 
+/* Add padding to form and recent coins sections */
+.card {
+    @apply p-6;
+}
+
+.space-y-4 > * {
+    @apply px-4;
+}
+
+.space-y-8 > * {
+    @apply px-4;
+}
+
 .mx-auto {
     margin-left: auto;
     margin-right: auto;
