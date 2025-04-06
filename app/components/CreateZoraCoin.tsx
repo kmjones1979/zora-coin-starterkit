@@ -14,6 +14,8 @@ import {
 import { zora } from "viem/chains";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { ethers } from "ethers";
+import { FACTORY_ADDRESSES } from "../config/factories";
+import { ChainSelector } from "../components/ChainSelector";
 
 // Add token ABI for reading token details
 const tokenABI = [
@@ -40,24 +42,6 @@ const tokenABI = [
     },
 ] as const;
 
-const BASE_NETWORK = {
-    id: 8453,
-    name: "Base",
-    network: "base",
-    nativeCurrency: {
-        name: "Ether",
-        symbol: "ETH",
-        decimals: 18,
-    },
-    rpcUrls: {
-        default: { http: ["https://mainnet.base.org"] },
-        public: { http: ["https://mainnet.base.org"] },
-    },
-    blockExplorers: {
-        default: { name: "Base Explorer", url: "https://basescan.org" },
-    },
-};
-
 // Update window type declaration
 declare global {
     interface Window {
@@ -72,6 +56,7 @@ const ZORA_COIN_IMPLEMENTATION_ADDRESS =
 const ZORA_CHAIN_ID = 7777777; // Zora mainnet chain ID
 
 export function CreateZoraCoin() {
+    const [mounted, setMounted] = useState(false);
     const {
         address,
         isConnected,
@@ -94,6 +79,10 @@ export function CreateZoraCoin() {
         symbol: string;
         totalSupply: bigint;
     } | null>(null);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
     // Define coin parameters
     const coinParams = {
@@ -159,18 +148,137 @@ export function CreateZoraCoin() {
         chainId: zora.id,
     });
 
+    // Helper function for exponential backoff
+    const sleep = (ms: number) =>
+        new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+    const retryWithBackoff = async (
+        fn: () => Promise<any>,
+        maxRetries = 3,
+        baseDelay = 1000
+    ) => {
+        let lastError: Error | undefined;
+        for (let i = 0; i < maxRetries; i++) {
+            try {
+                return await fn();
+            } catch (error) {
+                lastError = error as Error;
+                if (
+                    error instanceof Error &&
+                    error.message.includes("rate limit")
+                ) {
+                    const delay = baseDelay * Math.pow(2, i); // Exponential backoff
+                    console.log(`Rate limit hit, retrying in ${delay}ms...`);
+                    await sleep(delay);
+                    continue;
+                }
+                throw error;
+            }
+        }
+        throw lastError;
+    };
+
+    // Handle transaction success
+    useEffect(() => {
+        if (isSuccess && hash) {
+            const fetchReceipt = async () => {
+                try {
+                    const receipt = await retryWithBackoff(
+                        async () => {
+                            const result =
+                                await publicClient?.getTransactionReceipt({
+                                    hash,
+                                });
+                            if (!result) {
+                                throw new Error("Receipt not found");
+                            }
+                            return result;
+                        },
+                        3, // max retries
+                        2000 // base delay of 2 seconds
+                    );
+
+                    const coinDeployment = getCoinCreateFromLogs(receipt);
+                    if (coinDeployment?.coin) {
+                        setContractAddress(coinDeployment.coin);
+                        setStatus(
+                            "Transaction confirmed! Contract created successfully."
+                        );
+                    } else {
+                        setError(
+                            "Could not find coin address in transaction logs."
+                        );
+                        setStatus(
+                            "Transaction confirmed but coin address not found."
+                        );
+                    }
+                } catch (error) {
+                    console.error("Error fetching receipt:", error);
+                    if (
+                        error instanceof Error &&
+                        error.message.includes("rate limit")
+                    ) {
+                        setError(
+                            "Rate limit exceeded. Please wait a moment and try again."
+                        );
+                        // Final retry after longer delay
+                        setTimeout(() => {
+                            fetchReceipt();
+                        }, 10000);
+                    } else {
+                        setError(
+                            error instanceof Error
+                                ? error.message
+                                : "Failed to fetch transaction receipt"
+                        );
+                        setStatus("Error fetching transaction receipt.");
+                    }
+                }
+            };
+            fetchReceipt();
+        }
+    }, [isSuccess, hash, publicClient]);
+
+    // Add delay to contract reads
+    const fetchTokenDetails = async () => {
+        try {
+            await retryWithBackoff(
+                async () => {
+                    if (contractAddress) {
+                        await Promise.all([
+                            refetchName(),
+                            refetchSymbol(),
+                            refetchSupply(),
+                        ]);
+                    }
+                },
+                3, // max retries
+                2000 // base delay of 2 seconds
+            );
+        } catch (error) {
+            console.error("Error fetching token details:", error);
+            if (
+                error instanceof Error &&
+                error.message.includes("rate limit")
+            ) {
+                setError(
+                    "Rate limit exceeded. Please wait a moment and try again."
+                );
+                // Final retry after longer delay
+                setTimeout(() => {
+                    fetchTokenDetails();
+                }, 10000);
+            }
+        }
+    };
+
     // Refetch token details when contract is deployed
     useEffect(() => {
         if (isSuccess && contractAddress) {
             console.log("Contract deployed, fetching token details...");
-            // Add a small delay to ensure contract is fully deployed
-            setTimeout(() => {
-                refetchName();
-                refetchSymbol();
-                refetchSupply();
-            }, 2000);
+            fetchTokenDetails();
         }
-    }, [isSuccess, contractAddress, refetchName, refetchSymbol, refetchSupply]);
+    }, [isSuccess, contractAddress]);
 
     // Update token details when contract reads complete
     useEffect(() => {
@@ -209,81 +317,22 @@ export function CreateZoraCoin() {
         };
     }, [resetWriteContract, chainId, address]);
 
-    // Handle transaction success
-    useEffect(() => {
-        if (isSuccess && hash) {
-            const fetchReceipt = async () => {
-                try {
-                    const receipt = await publicClient?.getTransactionReceipt({
-                        hash,
-                    });
-                    if (receipt) {
-                        const coinDeployment = getCoinCreateFromLogs(receipt);
-                        if (coinDeployment?.coin) {
-                            setContractAddress(coinDeployment.coin);
-                            setStatus(
-                                "Transaction confirmed! Contract created successfully."
-                            );
-                        } else {
-                            setError(
-                                "Could not find coin address in transaction logs."
-                            );
-                            setStatus(
-                                "Transaction confirmed but coin address not found."
-                            );
-                        }
-                    }
-                } catch (error) {
-                    console.error("Error fetching receipt:", error);
-                    setError(
-                        error instanceof Error
-                            ? error.message
-                            : "Failed to fetch transaction receipt"
-                    );
-                    setStatus("Error fetching transaction receipt.");
-                }
-            };
-            fetchReceipt();
+    const getExplorerUrl = (chainId: number) => {
+        switch (chainId) {
+            case 8453:
+                return "https://basescan.org";
+            case 7777777:
+                return "https://explorer.zora.energy";
+            case 10:
+                return "https://optimistic.etherscan.io";
+            case 42161:
+                return "https://arbiscan.io";
+            case 81457:
+                return "https://blastscan.io";
+            default:
+                return "https://etherscan.io";
         }
-    }, [isSuccess, hash, publicClient]);
-
-    useEffect(() => {
-        if (typeof window === "undefined") return;
-
-        const handleSwitchToBase = async () => {
-            try {
-                if (!window.ethereum) {
-                    throw new Error("MetaMask is not installed");
-                }
-
-                const provider = new ethers.BrowserProvider(window.ethereum);
-                const currentNetwork = await provider.getNetwork();
-
-                if (currentNetwork.chainId === BigInt(BASE_NETWORK.id)) {
-                    console.log("Already connected to Base network");
-                    return;
-                }
-
-                await window.ethereum.request({
-                    method: "wallet_addEthereumChain",
-                    params: [BASE_NETWORK],
-                });
-
-                await window.ethereum.request({
-                    method: "wallet_switchEthereumChain",
-                    params: [{ chainId: `0x${BASE_NETWORK.id.toString(16)}` }],
-                });
-            } catch (error) {
-                console.error("Error switching to Base network:", error);
-                throw error;
-            }
-        };
-
-        // Only set up the handler if we're on the client side
-        if (typeof window !== "undefined") {
-            window.handleSwitchToBase = handleSwitchToBase;
-        }
-    }, []);
+    };
 
     const handleCreateCoin = async () => {
         try {
@@ -291,10 +340,13 @@ export function CreateZoraCoin() {
                 throw new Error("Please connect your wallet first");
             }
 
-            if (chainId !== BASE_NETWORK.id) {
-                await window.handleSwitchToBase?.();
-                // Wait for network switch
-                await new Promise((resolve) => setTimeout(resolve, 2000));
+            if (
+                !chainId ||
+                !FACTORY_ADDRESSES[chainId as keyof typeof FACTORY_ADDRESSES]
+            ) {
+                throw new Error(
+                    "Please switch to a supported network (Base, Zora, Optimism, Arbitrum, or Blast)"
+                );
             }
 
             setError("");
@@ -312,11 +364,6 @@ export function CreateZoraCoin() {
                 publicClient: !!publicClient,
             });
 
-            if (!chainId) {
-                throw new Error(
-                    "No network detected. Please check your wallet settings and ensure you're connected to Base network."
-                );
-            }
             if (!name.trim() || !symbol.trim() || !uri.trim()) {
                 throw new Error("Please fill in all fields");
             }
@@ -347,6 +394,21 @@ export function CreateZoraCoin() {
         }
     };
 
+    if (!mounted) {
+        return (
+            <div className="max-w-md mx-auto p-6 bg-white rounded-lg shadow-md">
+                <h2 className="text-2xl font-bold mb-4">
+                    Create New Zora Coin
+                </h2>
+                <div className="animate-pulse space-y-4">
+                    <div className="h-10 bg-gray-200 rounded"></div>
+                    <div className="h-10 bg-gray-200 rounded"></div>
+                    <div className="h-10 bg-gray-200 rounded"></div>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="max-w-md mx-auto p-6 bg-white rounded-lg shadow-md">
             <h2 className="text-2xl font-bold mb-4">Create New Zora Coin</h2>
@@ -359,14 +421,19 @@ export function CreateZoraCoin() {
                         <ConnectButton />
                     </div>
                 )}
-                {isConnected && chainId !== BASE_NETWORK.id && (
-                    <div className="p-4 bg-yellow-50 rounded-md">
-                        <p className="text-yellow-700 mb-2">
-                            You need to switch to Base network to create a coin.
-                        </p>
-                        <ConnectButton />
-                    </div>
-                )}
+                {isConnected &&
+                    (!chainId ||
+                        !FACTORY_ADDRESSES[
+                            chainId as keyof typeof FACTORY_ADDRESSES
+                        ]) && (
+                        <div className="p-4 bg-yellow-50 rounded-md">
+                            <p className="text-yellow-700 mb-2">
+                                Please switch to a supported network (Base,
+                                Zora, Optimism, Arbitrum, or Blast).
+                            </p>
+                            <ChainSelector />
+                        </div>
+                    )}
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                         Coin Name
@@ -419,7 +486,9 @@ export function CreateZoraCoin() {
                         isConfirming ||
                         accountStatus !== "connected" ||
                         !chainId ||
-                        chainId !== BASE_NETWORK.id ||
+                        !FACTORY_ADDRESSES[
+                            chainId as keyof typeof FACTORY_ADDRESSES
+                        ] ||
                         !name.trim() ||
                         !symbol.trim() ||
                         !uri.trim() ||
@@ -437,8 +506,10 @@ export function CreateZoraCoin() {
                             ? "Please connect your wallet"
                             : !chainId
                             ? "No network detected"
-                            : chainId !== BASE_NETWORK.id
-                            ? "Please switch to Base network"
+                            : !FACTORY_ADDRESSES[
+                                  chainId as keyof typeof FACTORY_ADDRESSES
+                              ]
+                            ? "Please switch to a supported network"
                             : !name.trim()
                             ? "Please enter a coin name"
                             : !symbol.trim()
@@ -461,12 +532,14 @@ export function CreateZoraCoin() {
                             <div className="font-medium">Transaction Hash:</div>
                             <div className="break-all">{txHash}</div>
                             <a
-                                href={`https://basescan.org/tx/${txHash}`}
+                                href={`${getExplorerUrl(
+                                    chainId || 8453
+                                )}/tx/${txHash}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="text-blue-600 hover:text-blue-800 underline mt-1 inline-block"
                             >
-                                View on Base Explorer
+                                View on Explorer
                             </a>
                         </div>
                     </div>
@@ -480,12 +553,14 @@ export function CreateZoraCoin() {
                             <div className="font-medium">Transaction Hash:</div>
                             <div className="break-all">{hash}</div>
                             <a
-                                href={`https://basescan.org/tx/${hash}`}
+                                href={`${getExplorerUrl(
+                                    chainId || 8453
+                                )}/tx/${hash}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="text-green-600 hover:text-green-800 underline mt-1 inline-block"
                             >
-                                View on Base Explorer
+                                View on Explorer
                             </a>
                         </div>
                         {contractAddress && (
@@ -498,12 +573,14 @@ export function CreateZoraCoin() {
                                         {contractAddress}
                                     </div>
                                     <a
-                                        href={`https://basescan.org/address/${contractAddress}`}
+                                        href={`${getExplorerUrl(
+                                            chainId || 8453
+                                        )}/address/${contractAddress}`}
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         className="text-green-600 hover:text-green-800 underline mt-1 inline-block"
                                     >
-                                        View Contract on Base Explorer
+                                        View Contract on Explorer
                                     </a>
                                 </div>
                                 {!tokenDetails && (

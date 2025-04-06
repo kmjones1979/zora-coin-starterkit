@@ -4,6 +4,7 @@ import { Providers } from "./providers";
 import dynamic from "next/dynamic";
 import { CreateZoraCoin } from "./components/CreateZoraCoin";
 import { RecentCoins } from "./components/RecentCoins";
+import { ChainSelector } from "./components/ChainSelector";
 
 const WalletConnect = dynamic(
     () => import("./components/WalletConnect").then((mod) => mod.WalletConnect),
@@ -21,7 +22,10 @@ export default function Home() {
                         <h1 className="text-2xl font-bold text-gray-900">
                             Zora Coin Creator
                         </h1>
-                        <WalletConnect />
+                        <div className="flex items-center gap-4">
+                            <ChainSelector />
+                            <WalletConnect />
+                        </div>
                     </div>
                 </header>
                 <main className="max-w-7xl mx-auto px-4 py-8">
