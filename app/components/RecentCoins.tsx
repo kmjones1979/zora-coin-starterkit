@@ -114,7 +114,7 @@ export function RecentCoins() {
     if (loading) {
         return (
             <div className="p-4 bg-white rounded-lg shadow">
-                <h2 className="text-xl font-semibold mb-4">
+                <h2 className="text-xl font-semibold mb-4 ">
                     Recent Coins on{" "}
                     {CHAINS[chainId as keyof typeof CHAINS]?.name ||
                         "Unknown Chain"}
@@ -142,8 +142,8 @@ export function RecentCoins() {
     }
 
     return (
-        <div className="p-4 bg-white rounded-lg shadow">
-            <h2 className="text-xl font-semibold mb-4 text-black">
+        <div className="p-6 bg-white rounded-lg shadow">
+            <h2 className="text-xl font-semibold mb-6 text-black">
                 Recent Coins on{" "}
                 {CHAINS[chainId as keyof typeof CHAINS]?.name ||
                     "Unknown Chain"}
@@ -164,13 +164,13 @@ export function RecentCoins() {
                     </p>
                 </div>
             ) : (
-                <div className="space-y-4">
+                <div className="space-y-6">
                     {coins.map((coin, index) => (
                         <div
                             key={index}
                             className="p-4 border rounded-lg hover:bg-gray-50"
                         >
-                            <div className="flex justify-between items-start">
+                            <div className="flex justify-between items-start mb-3">
                                 <div>
                                     <h3 className="font-medium text-black">
                                         {coin.name}
@@ -183,7 +183,7 @@ export function RecentCoins() {
                                     {formatDate(coin.createdAt)}
                                 </div>
                             </div>
-                            <div className="mt-2 text-sm">
+                            <div className="mt-3 text-sm space-y-2">
                                 <p className="text-gray-600">
                                     Chain:{" "}
                                     {CHAINS[coin.chainId as keyof typeof CHAINS]
