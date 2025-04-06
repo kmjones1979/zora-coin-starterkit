@@ -611,6 +611,72 @@ const endTime = performance.now();
 console.log(`API call took ${endTime - startTime}ms`);
 ```
 
+## Debug Mode
+
+The application includes a debug mode that can be toggled on/off. By default, debug mode is enabled.
+
+### Toggling Debug Mode
+
+1. **UI Toggle**: Click the debug button in the header (🔍 Debug On/Debug Off)
+2. **Programmatic Control**: Use the `useDebug` hook in your components:
+
+```tsx
+import { useDebug } from "../contexts/DebugContext";
+
+function YourComponent() {
+    const { isDebug, toggleDebug } = useDebug();
+
+    // Toggle debug mode
+    toggleDebug();
+
+    // Check debug status
+    if (isDebug) {
+        // Show debug information
+    }
+}
+```
+
+### Default Debug State
+
+To change the default debug state (enabled by default), modify the `DebugProvider` in `app/contexts/DebugContext.tsx`:
+
+```tsx
+export function DebugProvider({ children }: { children: ReactNode }) {
+    // Change the initial state to false to disable debug by default
+    const [isDebug, setIsDebug] = useState(false);
+    // ... rest of the provider
+}
+```
+
+### Debug Information
+
+When debug mode is enabled, the following information is available:
+
+-   Transaction details
+-   Contract interactions
+-   Network requests
+-   State changes
+-   Error traces
+
+### Using Debug Information
+
+```tsx
+function YourComponent() {
+    const { isDebug } = useDebug();
+
+    return (
+        <div>
+            {isDebug && (
+                <div className="debug-panel">
+                    {/* Debug information */}
+                    <pre>{JSON.stringify(debugData, null, 2)}</pre>
+                </div>
+            )}
+        </div>
+    );
+}
+```
+
 ## Contributing Guidelines
 
 ### Code Review Process
