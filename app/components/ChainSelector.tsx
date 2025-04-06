@@ -63,7 +63,7 @@ export function ChainSelector() {
             <DropdownMenuTrigger asChild>
                 <Button
                     variant="outline"
-                    className="flex items-center gap-2 text-black"
+                    className="flex items-center gap-2 bg-background hover:bg-accent text-foreground"
                 >
                     {currentChain ? (
                         <>
@@ -76,17 +76,20 @@ export function ChainSelector() {
                     <ChevronDown className="h-4 w-4" />
                 </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuContent
+                align="end"
+                className="w-48 bg-popover border border-border"
+            >
                 {SUPPORTED_CHAINS.map((chain) => (
                     <DropdownMenuItem
                         key={chain.id}
                         onClick={() => switchChain?.({ chainId: chain.id })}
                         className={`
-                            flex items-center gap-2 text-black
+                            flex items-center gap-2 cursor-pointer text-popover-foreground
                             ${
                                 chain.id === chainId
-                                    ? "bg-gray-100 font-semibold"
-                                    : ""
+                                    ? "bg-accent text-accent-foreground"
+                                    : "hover:bg-accent hover:text-accent-foreground"
                             }
                         `}
                     >

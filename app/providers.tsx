@@ -7,18 +7,21 @@ import { config } from "./config/wagmi";
 import "@rainbow-me/rainbowkit/styles.css";
 import dynamic from "next/dynamic";
 import { DebugProvider } from "./contexts/DebugContext";
+import { ThemeProvider } from "./contexts/ThemeContext";
 
 const queryClient = new QueryClient();
 
 export function Providers({ children }: { children: React.ReactNode }) {
     return (
-        <DebugProvider>
-            <WagmiProvider config={config}>
-                <QueryClientProvider client={queryClient}>
-                    <RainbowKitProvider>{children}</RainbowKitProvider>
-                </QueryClientProvider>
-            </WagmiProvider>
-        </DebugProvider>
+        <ThemeProvider>
+            <DebugProvider>
+                <WagmiProvider config={config}>
+                    <QueryClientProvider client={queryClient}>
+                        <RainbowKitProvider>{children}</RainbowKitProvider>
+                    </QueryClientProvider>
+                </WagmiProvider>
+            </DebugProvider>
+        </ThemeProvider>
     );
 }
 

@@ -16,12 +16,20 @@ import {
 
 // Create custom transport for each chain
 const baseTransport = http(
-    `https://drpc.org/rpc/${process.env.NEXT_PUBLIC_DRPC_KEY}/base`,
+    `https://rpc.drpc.org/rpc/${process.env.NEXT_PUBLIC_DRPC_KEY}/base`,
     {
         batch: {
             wait: 16,
         },
-        retryCount: 3,
+        retryCount: 10,
+        timeout: 30000,
+        fetchOptions: {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Accept: "application/json",
+            },
+        },
     }
 );
 

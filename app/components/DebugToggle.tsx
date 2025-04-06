@@ -1,15 +1,19 @@
+"use client";
+
 import { useDebug } from "../contexts/DebugContext";
+import { Button } from "./ui/button";
 
 export function DebugToggle() {
     const { isDebug, toggleDebug } = useDebug();
 
     return (
-        <button
+        <Button
+            variant={isDebug ? "default" : "outline"}
+            size="sm"
             onClick={toggleDebug}
-            className={`btn btn-sm ${isDebug ? "btn-primary" : "btn-ghost"}`}
-            title="Toggle Debug Mode"
+            className="text-foreground"
         >
             {isDebug ? "🔍 Debug On" : "Debug Off"}
-        </button>
+        </Button>
     );
 }

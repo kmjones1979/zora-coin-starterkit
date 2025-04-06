@@ -91,193 +91,113 @@ A dropdown menu for selecting different chains:
 
 ## Zora Coins SDK Implementation
 
-The application uses the Zora Coins SDK to interact with the Zora protocol. Here are the key implementations:
+The application leverages the Zora Coins SDK to interact with the Zora protocol, providing a robust interface for creating and managing coins across multiple chains. The SDK abstracts away much of the complexity of interacting with the blockchain, while still providing fine-grained control over the coin creation process.
 
 ### Creating a New Coin
 
-```typescript
-// From CreateZoraCoin.tsx
-import { createCoinCall, getCoinCreateFromLogs } from "@zoralabs/coins-sdk";
-import { Address as ViemAddress } from "viem";
+The coin creation process is handled through a series of well-defined steps that ensure proper deployment and verification of the new coin. Here's a detailed breakdown of how it works:
 
-// Factory and implementation addresses
-const ZORA_COIN_FACTORY_ADDRESS = "0x7777777F279eba3d3Ad8F4E708545291A6fDBA8B";
-const ZORA_COIN_IMPLEMENTATION_ADDRESS =
-    "0x7777777F279eba3d3Ad8F4E708545291A6fDBA8B";
+1. **Factory and Implementation Setup**: The SDK requires two key addresses to function properly:
 
-// Define coin parameters
-const coinParams = {
-    name: name.trim(),
-    symbol: symbol.trim(),
-    uri: uri.trim(),
-    payoutRecipient: address as ViemAddress,
-    platformReferrer: address as ViemAddress,
-};
+    - The Zora Coin Factory address (`0x7777777F279eba3d3Ad8F4E708545291A6fDBA8B`): This is the main contract that handles the deployment of new coins
+    - The Zora Coin Implementation address: This is the template contract that new coins are based on
 
-// Create configuration for wagmi
-const contractCallParams = createCoinCall(coinParams);
+2. **Coin Parameters**: When creating a new coin, you need to specify several key parameters:
 
-// Use wagmi's useContractWrite hook to send the transaction
-const {
-    writeContract,
-    data: hash,
-    error: writeError,
-    isPending: isWriting,
-} = useContractWrite({
-    mutation: {
-        onSuccess: (data) => {
-            console.log("Transaction sent:", data);
-            setTxHash(data);
-            setStatus("Transaction sent, waiting for confirmation...");
-        },
-        onError: (error) => {
-            console.error("Transaction error:", error);
-            setError(error.message);
-            setStatus("Transaction failed");
-        },
-    },
-});
+    - `name`: The full name of your coin (e.g., "My Awesome Coin")
+    - `symbol`: The ticker symbol (e.g., "MAC")
+    - `uri`: A URI that points to the coin's metadata
+    - `payoutRecipient`: The address that will receive any fees or rewards
+    - `platformReferrer`: The address that referred the coin creation
 
-// Wait for transaction to be mined
-const { isLoading: isConfirming, isSuccess } = useTransaction({
-    hash: hash || undefined,
-    chainId: chainId,
-});
+3. **Transaction Flow**: The creation process follows a specific sequence:
 
-// After transaction confirmation, extract the coin address from logs
-const receipt = await publicClient?.getTransactionReceipt({ hash });
-const coinDeployment = getCoinCreateFromLogs(receipt);
-if (coinDeployment?.coin) {
-    setContractAddress(coinDeployment.coin);
-}
-```
+    - First, the SDK prepares the transaction parameters using `createCoinCall`
+    - Then, the transaction is sent using wagmi's `useContractWrite` hook
+    - The transaction is monitored for confirmation using `useTransaction`
+    - Finally, the new coin's address is extracted from the transaction logs
+
+4. **Error Handling**: The implementation includes comprehensive error handling:
+    - Transaction failures are caught and displayed to the user
+    - Network issues are handled with retry logic
+    - Invalid parameters are validated before submission
 
 ### Reading Token Details
 
-```typescript
-// Token ABI for reading details
-const tokenABI = [
-    {
-        inputs: [],
-        name: "name",
-        outputs: [{ name: "", type: "string" }],
-        stateMutability: "view",
-        type: "function",
-    },
-    {
-        inputs: [],
-        name: "symbol",
-        outputs: [{ name: "", type: "string" }],
-        stateMutability: "view",
-        type: "function",
-    },
-    {
-        inputs: [],
-        name: "totalSupply",
-        outputs: [{ name: "", type: "uint256" }],
-        stateMutability: "view",
-        type: "function",
-    },
-] as const;
+The SDK provides several ways to read information about existing coins. Here's how the token details reading process works:
 
-// Contract read hooks for token details
-const { data: tokenName, refetch: refetchName } = useContractRead({
-    address: contractAddress || undefined,
-    abi: tokenABI,
-    functionName: "name",
-    chainId: zora.id,
-});
+1. **Contract ABI**: The application uses a standardized ABI (Application Binary Interface) to interact with the token contracts. This ABI includes three main functions:
 
-const { data: tokenSymbol, refetch: refetchSymbol } = useContractRead({
-    address: contractAddress || undefined,
-    abi: tokenABI,
-    functionName: "symbol",
-    chainId: zora.id,
-});
+    - `name()`: Returns the full name of the token
+    - `symbol()`: Returns the token's ticker symbol
+    - `totalSupply()`: Returns the total number of tokens in circulation
 
-const { data: tokenSupply, refetch: refetchSupply } = useContractRead({
-    address: contractAddress || undefined,
-    abi: tokenABI,
-    functionName: "totalSupply",
-    chainId: zora.id,
-});
-```
+2. **Reading Process**: The token details are read using wagmi's `useContractRead` hook, which:
+
+    - Automatically handles caching of results
+    - Provides loading and error states
+    - Allows for manual refetching when needed
+    - Supports multiple chains through the `chainId` parameter
+
+3. **Data Management**: The implementation includes:
+    - Automatic updates when the contract state changes
+    - Error handling for failed reads
+    - Loading states for better UX
+    - Caching to reduce unnecessary network calls
 
 ### Error Handling and Retries
 
-```typescript
-// Helper function for exponential backoff
-const sleep = (ms: number) =>
-    new Promise<void>((resolve) => setTimeout(resolve, ms));
+The application implements a sophisticated error handling and retry system to ensure reliable operation:
 
-const retryWithBackoff = async (
-    fn: () => Promise<any>,
-    maxRetries = 3,
-    baseDelay = 1000
-) => {
-    let lastError: Error | undefined;
-    for (let i = 0; i < maxRetries; i++) {
-        try {
-            return await fn();
-        } catch (error) {
-            lastError = error as Error;
-            if (
-                error instanceof Error &&
-                error.message.includes("rate limit")
-            ) {
-                const delay = baseDelay * Math.pow(2, i); // Exponential backoff
-                console.log(`Rate limit hit, retrying in ${delay}ms...`);
-                await sleep(delay);
-                continue;
-            }
-            throw error;
-        }
-    }
-    throw lastError;
-};
+1. **Exponential Backoff**: The retry system uses exponential backoff to handle temporary failures:
 
-// Usage in transaction receipt fetching
-const receipt = await retryWithBackoff(
-    async () => {
-        const result = await publicClient?.getTransactionReceipt({ hash });
-        if (!result) {
-            throw new Error("Receipt not found");
-        }
-        return result;
-    },
-    3, // max retries
-    2000 // base delay of 2 seconds
-);
-```
+    - Starts with a base delay (default 1000ms)
+    - Doubles the delay after each retry
+    - Caps the maximum number of retries (default 3)
+
+2. **Rate Limit Handling**: Special handling for rate limits:
+
+    - Detects rate limit errors in the response
+    - Implements exponential backoff for rate-limited requests
+    - Logs retry attempts for debugging
+
+3. **Transaction Receipt Handling**: Special handling for transaction receipts:
+    - Retries receipt fetching with increasing delays
+    - Handles cases where receipts aren't immediately available
+    - Provides detailed error information for failed attempts
 
 ### Key Features of the SDK Implementation
 
 1. **Error Handling and Retries**
+   The implementation includes a robust error handling system that:
 
-    - Implements exponential backoff for API calls
-    - Detects and handles rate limits
-    - Multiple retry attempts with increasing delays
-    - Graceful error handling for transaction failures
+    - Automatically retries failed operations with exponential backoff
+    - Specifically handles rate limits from the Zora API
+    - Provides detailed error messages for debugging
+    - Implements graceful degradation when services are unavailable
 
 2. **Transaction Management**
+   The transaction management system provides:
 
-    - Uses wagmi's hooks for transaction state management
-    - Tracks transaction status and confirmation
-    - Extracts contract addresses from transaction logs
-    - Handles transaction receipt fetching with retries
+    - Real-time status updates during coin creation
+    - Automatic confirmation monitoring
+    - Detailed error reporting
+    - Transaction receipt extraction and validation
 
 3. **Token Details Management**
+   The token details system offers:
 
-    - Reads token details using contract ABI
-    - Manages token name, symbol, and supply
-    - Implements refetching for updated data
-    - Handles loading and error states
+    - Automatic caching of token information
+    - Real-time updates when token state changes
+    - Comprehensive error handling
+    - Support for multiple chains
 
 4. **Chain Support**
-    - Works across multiple EVM chains
-    - Supports both mainnet and testnet deployments
-    - Handles chain-specific configurations
-    - Manages chain switching and validation
+   The multi-chain support includes:
+    - Automatic chain detection and switching
+    - Chain-specific configurations
+    - Cross-chain compatibility
+    - Network validation and error handling
 
 ## Chain Configuration
 
@@ -613,9 +533,11 @@ console.log(`API call took ${endTime - startTime}ms`);
 
 ## Debug Mode
 
-The application includes a debug mode that can be toggled on/off. By default, debug mode is enabled.
+The application includes a debug mode that can be toggled on/off. By default, debug mode is enabled. This feature is particularly useful during development and testing, as it provides detailed insights into the application's behavior, transaction states, and network interactions. The debug mode helps developers understand the flow of data and identify potential issues in the application.
 
 ### Toggling Debug Mode
+
+Debug mode can be controlled in two ways, providing flexibility for both end users and developers:
 
 1. **UI Toggle**: Click the debug button in the header (🔍 Debug On/Debug Off)
 2. **Programmatic Control**: Use the `useDebug` hook in your components:
@@ -636,9 +558,11 @@ function YourComponent() {
 }
 ```
 
+The UI toggle provides a quick way for users to access debug information, while the programmatic control allows developers to integrate debug functionality into their components and tests.
+
 ### Default Debug State
 
-To change the default debug state (enabled by default), modify the `DebugProvider` in `app/contexts/DebugContext.tsx`:
+The debug mode is enabled by default to help developers catch issues early in the development process. However, you can change this default behavior by modifying the `DebugProvider` in `app/contexts/DebugContext.tsx`:
 
 ```tsx
 export function DebugProvider({ children }: { children: ReactNode }) {
@@ -648,17 +572,29 @@ export function DebugProvider({ children }: { children: ReactNode }) {
 }
 ```
 
+This configuration is particularly useful when deploying to production, where you might want to disable debug mode by default to improve performance and reduce unnecessary logging.
+
 ### Debug Information
 
-When debug mode is enabled, the following information is available:
+When debug mode is enabled, the application provides comprehensive debugging information that helps in understanding and troubleshooting various aspects of the application:
 
--   Transaction details
--   Contract interactions
--   Network requests
--   State changes
--   Error traces
+-   **Transaction details**: Shows the complete lifecycle of transactions, from initiation to confirmation
+-   **Contract interactions**: Displays all contract calls and their responses
+-   **Network requests**: Logs all API calls and their responses
+-   **State changes**: Tracks changes in application state
+-   **Error traces**: Provides detailed error information with stack traces
+
+This information is invaluable for:
+
+-   Debugging transaction failures
+-   Understanding application flow
+-   Optimizing performance
+-   Identifying network issues
+-   Tracking state management problems
 
 ### Using Debug Information
+
+The debug information can be accessed and displayed in your components using the `useDebug` hook:
 
 ```tsx
 function YourComponent() {
@@ -676,6 +612,14 @@ function YourComponent() {
     );
 }
 ```
+
+The debug panel provides a structured view of the debug information, making it easier to analyze and understand the application's behavior. The information is formatted in a readable way and can be used to:
+
+-   Monitor transaction progress
+-   Verify contract interactions
+-   Check network requests
+-   Validate state changes
+-   Debug error conditions
 
 ## Contributing Guidelines
 
