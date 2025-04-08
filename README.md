@@ -938,6 +938,49 @@ Displays a list of recently created coins with detailed information.
 - Real-time updates
 ```
 
+#### 6. GetCoins
+
+Displays a list of coins with different view types and detailed information.
+
+```tsx
+// Usage
+<GetCoins count={10} initialType="topVolume" />
+
+// Props
+interface GetCoinsProps {
+    count?: number;          // Number of coins to display (default: 10)
+    after?: string;          // Pagination cursor
+    initialType?: ExploreQueryType;  // Initial view type (default: 'new')
+}
+
+// View Types
+type ExploreQueryType =
+    | 'new'                 // Most recently created coins
+    | 'topGainers'          // Coins with highest 24h gains
+    | 'topVolume'           // Coins with highest 24h volume
+    | 'mostValuable'        // Coins with highest market cap
+    | 'lastTraded'          // Most recently traded coins
+    | 'lastTradedUnique';   // Most recently traded by unique traders
+
+// Features
+- Dynamic view type selection
+- Pagination support
+- Loading states
+- Error handling
+- Network validation
+- Detailed coin information:
+  - Name and symbol
+  - Creation date
+  - Creator address
+  - Contract address
+  - Market cap
+  - 24h volume
+  - Number of holders
+  - 24h price change
+- Explorer links
+- Responsive design
+```
+
 ### Custom Hooks
 
 #### 1. useCoinCreation

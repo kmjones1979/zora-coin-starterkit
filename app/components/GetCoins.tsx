@@ -1,9 +1,17 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { getCoinsNew } from "@zoralabs/coins-sdk";
+import {
+    getCoinsNew,
+    getCoinsTopGainers,
+    getCoinsTopVolume24h,
+    getCoinsMostValuable,
+    getCoinsLastTraded,
+    getCoinsLastTradedUnique,
+} from "@zoralabs/coins-sdk";
 import { useChainId } from "wagmi";
 import { CHAINS } from "../config/chains";
+import { ExploreTypeSelector, ExploreQueryType } from "./ExploreTypeSelector";
 
 interface Coin {
     name: string;
@@ -13,18 +21,27 @@ interface Coin {
     creatorAddress: string;
     marketCap?: string;
     chainId: number;
+    volume24h?: string;
+    uniqueHolders?: number;
+    marketCapDelta24h?: string;
 }
 
 interface GetCoinsProps {
     count?: number;
     after?: string;
+    initialType?: ExploreQueryType;
 }
 
-export function GetCoins({ count = 10, after }: GetCoinsProps) {
+export function GetCoins({
+    count = 10,
+    after,
+    initialType = "new",
+}: GetCoinsProps) {
     const [coins, setCoins] = useState<Coin[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [mounted, setMounted] = useState(false);
+    const [type, setType] = useState<ExploreQueryType>(initialType);
     const chainId = useChainId();
 
     useEffect(() => {
@@ -48,19 +65,45 @@ export function GetCoins({ count = 10, after }: GetCoinsProps) {
                 console.log(
                     "Fetching coins for chain:",
                     chainId,
-                    CHAINS[chainId as keyof typeof CHAINS]?.name
+                    CHAINS[chainId as keyof typeof CHAINS]?.name,
+                    "with type:",
+                    type
                 );
-                const response = await getCoinsNew({
-                    count,
-                    after,
-                });
-                if (!response) {
-                    throw new Error("Failed to fetch coins after retries");
+
+                let response;
+                switch (type) {
+                    case "new":
+                        response = await getCoinsNew({ count, after });
+                        break;
+                    case "topGainers":
+                        response = await getCoinsTopGainers({ count, after });
+                        break;
+                    case "topVolume":
+                        response = await getCoinsTopVolume24h({ count, after });
+                        break;
+                    case "mostValuable":
+                        response = await getCoinsMostValuable({ count, after });
+                        break;
+                    case "lastTraded":
+                        response = await getCoinsLastTraded({ count, after });
+                        break;
+                    case "lastTradedUnique":
+                        response = await getCoinsLastTradedUnique({
+                            count,
+                            after,
+                        });
+                        break;
+                    default:
+                        response = await getCoinsNew({ count, after });
                 }
-                console.log("API Response:", response);
+
+                if (!response) {
+                    throw new Error("Failed to fetch coins");
+                }
+                console.log("API Response:", JSON.stringify(response, null, 2));
 
                 if (response.data?.exploreList?.edges) {
-                    const recentCoins = response.data.exploreList.edges
+                    const fetchedCoins = response.data.exploreList.edges
                         .map((edge: any) => ({
                             name: edge.node.name,
                             symbol: edge.node.symbol,
@@ -69,21 +112,33 @@ export function GetCoins({ count = 10, after }: GetCoinsProps) {
                             creatorAddress: edge.node.creatorAddress,
                             marketCap: edge.node.marketCap,
                             chainId: edge.node.chainId,
+                            volume24h: edge.node.volume24h,
+                            uniqueHolders: edge.node.uniqueHolders,
+                            marketCapDelta24h: edge.node.marketCapDelta24h,
                         }))
                         .sort(
                             (a: Coin, b: Coin) =>
                                 new Date(b.createdAt).getTime() -
                                 new Date(a.createdAt).getTime()
                         );
-                    console.log("Processed coins:", recentCoins);
-                    setCoins(recentCoins);
+                    console.log("Processed coins:", fetchedCoins);
+                    setCoins(fetchedCoins);
                 } else {
-                    console.log("No coins found in response");
+                    console.log(
+                        "No coins found in response. Response structure:",
+                        {
+                            hasData: !!response.data,
+                            hasExploreList: !!response.data?.exploreList,
+                            hasEdges: !!response.data?.exploreList?.edges,
+                            edgesLength:
+                                response.data?.exploreList?.edges?.length,
+                        }
+                    );
                     setError("No coins found on this network");
                 }
             } catch (err) {
-                console.error("Error fetching recent coins:", err);
-                setError("Failed to fetch recent coins");
+                console.error("Error fetching coins:", err);
+                setError("Failed to fetch coins");
             } finally {
                 setLoading(false);
             }
@@ -92,11 +147,30 @@ export function GetCoins({ count = 10, after }: GetCoinsProps) {
         if (mounted) {
             fetchGetCoins();
         }
-    }, [chainId, mounted, count]);
+    }, [chainId, mounted, count, after, type]);
 
     const formatDate = (dateString: string) => {
         const date = new Date(dateString);
         return date.toISOString().split("T")[0]; // YYYY-MM-DD format
+    };
+
+    const getTitle = () => {
+        switch (type) {
+            case "new":
+                return "New Coins";
+            case "topGainers":
+                return "Top Gainers";
+            case "topVolume":
+                return "Top Volume";
+            case "mostValuable":
+                return "Most Valuable";
+            case "lastTraded":
+                return "Recently Traded";
+            case "lastTradedUnique":
+                return "Recently Traded by Unique Traders";
+            default:
+                return "Coins";
+        }
     };
 
     if (!mounted) {
@@ -106,11 +180,7 @@ export function GetCoins({ count = 10, after }: GetCoinsProps) {
     if (loading) {
         return (
             <div className="p-4 bg-white rounded-lg shadow">
-                <h2 className="text-xl font-semibold mb-4 ">
-                    Get Coins on{" "}
-                    {CHAINS[chainId as keyof typeof CHAINS]?.name ||
-                        "Unknown Chain"}
-                </h2>
+                <h2 className="text-xl font-semibold mb-4">{getTitle()}</h2>
                 <div className="animate-pulse space-y-4">
                     {[...Array(3)].map((_, i) => (
                         <div key={i} className="h-20 bg-gray-200 rounded"></div>
@@ -123,11 +193,7 @@ export function GetCoins({ count = 10, after }: GetCoinsProps) {
     if (error) {
         return (
             <div className="p-4 bg-white rounded-lg shadow">
-                <h2 className="text-xl font-semibold mb-4">
-                    Recent Coins on{" "}
-                    {CHAINS[chainId as keyof typeof CHAINS]?.name ||
-                        "Unknown Chain"}
-                </h2>
+                <h2 className="text-xl font-semibold mb-4">{getTitle()}</h2>
                 <div className="text-red-500">{error}</div>
             </div>
         );
@@ -135,11 +201,12 @@ export function GetCoins({ count = 10, after }: GetCoinsProps) {
 
     return (
         <div className="p-6 bg-white rounded-lg shadow">
-            <h2 className="text-xl font-semibold mb-6 text-black">
-                Recent Coins on{" "}
-                {CHAINS[chainId as keyof typeof CHAINS]?.name ||
-                    "Unknown Chain"}
-            </h2>
+            <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-semibold text-black">
+                    {getTitle()}
+                </h2>
+                <ExploreTypeSelector value={type} onValueChange={setType} />
+            </div>
             {!chainId || !(chainId in CHAINS) ? (
                 <div className="p-4 bg-yellow-50 rounded-lg">
                     <p className="text-yellow-700">
@@ -150,9 +217,7 @@ export function GetCoins({ count = 10, after }: GetCoinsProps) {
             ) : coins.length === 0 ? (
                 <div className="p-4 bg-yellow-50 rounded-lg">
                     <p className="text-yellow-700">
-                        No coins found on{" "}
-                        {CHAINS[chainId as keyof typeof CHAINS].name}. Try
-                        checking back later.
+                        No coins found. Try checking back later.
                     </p>
                 </div>
             ) : (
@@ -193,6 +258,21 @@ export function GetCoins({ count = 10, after }: GetCoinsProps) {
                                 {coin.marketCap && (
                                     <p className="text-gray-600">
                                         Market Cap: {coin.marketCap}
+                                    </p>
+                                )}
+                                {coin.volume24h && (
+                                    <p className="text-gray-600">
+                                        24h Volume: {coin.volume24h}
+                                    </p>
+                                )}
+                                {coin.uniqueHolders && (
+                                    <p className="text-gray-600">
+                                        Holders: {coin.uniqueHolders}
+                                    </p>
+                                )}
+                                {coin.marketCapDelta24h && (
+                                    <p className="text-gray-600">
+                                        24h Change: {coin.marketCapDelta24h}%
                                     </p>
                                 )}
                                 <a

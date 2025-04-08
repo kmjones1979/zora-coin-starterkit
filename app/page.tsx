@@ -21,7 +21,7 @@ export default function Home() {
                 <main className="container mx-auto px-4 py-8">
                     <div className="space-y-12">
                         <CreateCoin />
-                        <GetCoins count={50} />
+                        <GetCoins count={5} initialType="topVolume" />
                     </div>
                 </main>
             </div>
