@@ -1,17 +1,9 @@
 "use client";
 
 import { Providers } from "./providers";
-import dynamic from "next/dynamic";
 import { CreateCoin } from "./components/CreateCoin";
 import { GetCoins } from "./components/GetCoins";
 import { Header } from "./components/Header";
-
-const WalletConnect = dynamic(
-    () => import("./components/WalletConnect").then((mod) => mod.WalletConnect),
-    {
-        ssr: false,
-    }
-);
 
 export default function Home() {
     return (
@@ -21,7 +13,7 @@ export default function Home() {
                 <main className="container mx-auto px-4 py-8">
                     <div className="space-y-12">
                         <CreateCoin />
-                        <GetCoins count={5} initialType="topVolume" />
+                        <GetCoins count={5} initialType="new" />
                     </div>
                 </main>
             </div>

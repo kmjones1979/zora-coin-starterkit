@@ -7,6 +7,7 @@ import { Label } from "./ui/label";
 import { useCoinCreation } from "../hooks/useCoinCreation";
 import { useAccount, useChainId } from "wagmi";
 import { Address } from "viem";
+import { CHAINS } from "../config/chains";
 
 interface TransactionStatusProps {
     transactionHash?: `0x${string}`;
@@ -14,13 +15,13 @@ interface TransactionStatusProps {
     name: string;
     symbol: string;
     uri: string;
-    chainId: number;
+    chainId: keyof typeof CHAINS;
     tokenAddress?: `0x${string}`;
 }
 
 function TransactionStatus({
     transactionHash,
-    status,
+    status = "",
     name,
     symbol,
     uri,
@@ -29,78 +30,45 @@ function TransactionStatus({
 }: TransactionStatusProps) {
     if (!transactionHash) return null;
 
-    if (status === "success") {
-        console.log("Coin creation successful!", {
-            transactionHash,
-            name,
-            symbol,
-            uri,
-            tokenAddress,
-        });
-    }
-
-    const getExplorerUrl = (hash: string) => {
-        switch (chainId) {
-            case 8453: // Base
-                return `https://basescan.org/tx/${hash}`;
-            case 7777777: // Zora
-                return `https://explorer.zora.energy/tx/${hash}`;
-            case 10: // Optimism
-                return `https://optimistic.etherscan.io/tx/${hash}`;
-            case 42161: // Arbitrum
-                return `https://arbiscan.io/tx/${hash}`;
-            case 81457: // Blast
-                return `https://blastscan.io/tx/${hash}`;
-            default:
-                return `https://etherscan.io/tx/${hash}`;
-        }
+    const getTransactionStatusColor = (status: string) => {
+        if (status.includes("success")) return "text-green-600";
+        if (status.includes("failed")) return "text-red-600";
+        return "text-yellow-600";
     };
 
-    const getTokenExplorerUrl = (address: string) => {
-        switch (chainId) {
-            case 8453: // Base
-                return `https://basescan.org/token/${address}`;
-            case 7777777: // Zora
-                return `https://explorer.zora.energy/token/${address}`;
-            case 10: // Optimism
-                return `https://optimistic.etherscan.io/token/${address}`;
-            case 42161: // Arbitrum
-                return `https://arbiscan.io/token/${address}`;
-            case 81457: // Blast
-                return `https://blastscan.io/token/${address}`;
-            default:
-                return `https://etherscan.io/token/${address}`;
-        }
+    const getExplorerUrl = (hash: `0x${string}`) => {
+        const chain = CHAINS[chainId];
+        return chain ? `${chain.explorer}/tx/${hash}` : "#";
+    };
+
+    const getTokenExplorerUrl = (address: `0x${string}`) => {
+        const chain = CHAINS[chainId];
+        return chain ? `${chain.explorer}/address/${address}` : "#";
     };
 
     return (
         <div className="mt-4 p-4 bg-gray-50 rounded-lg">
             <h3 className="font-semibold mb-2">Transaction Status</h3>
             <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                    <span className="font-medium">Hash:</span>
+                <div>
+                    <span className="font-medium">Status:</span>{" "}
+                    <span className={getTransactionStatusColor(status)}>
+                        {status}
+                    </span>
+                </div>
+                <div>
+                    <span className="font-medium">Transaction Hash:</span>{" "}
                     <a
                         href={getExplorerUrl(transactionHash)}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="font-mono text-sm break-all text-blue-600 hover:text-blue-800"
+                        className="font-mono text-blue-600 hover:text-blue-800"
                     >
-                        {transactionHash}
+                        {transactionHash.slice(0, 6)}...
+                        {transactionHash.slice(-4)}
                     </a>
                 </div>
-                <div className="flex items-center gap-2">
-                    <span className="font-medium">Status:</span>
-                    <span
-                        className={`font-medium ${
-                            status === "success"
-                                ? "text-green-600"
-                                : "text-yellow-600"
-                        }`}
-                    >
-                        {status}
-                    </span>
-                </div>
-                {status === "success" && (
+                {status.includes("success") && (
                     <div className="mt-4">
                         <h4 className="font-semibold mb-2">Token Created</h4>
                         <div className="space-y-1 text-sm">
@@ -145,7 +113,7 @@ interface CoinFormProps {
 
 export function CoinForm({ onSuccess }: CoinFormProps) {
     const { address } = useAccount();
-    const chainId = useChainId();
+    const chainId = useChainId() as keyof typeof CHAINS;
     const [name, setName] = useState("My Awesome Coin");
     const [symbol, setSymbol] = useState("MAC");
     const [uri, setUri] = useState("ipfs://Qm...");

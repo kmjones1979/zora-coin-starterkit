@@ -1,32 +1,44 @@
+import { zora, base, optimism, arbitrum, blast } from "viem/chains";
+
 export const CHAINS = {
-    8453: {
+    [base.id]: {
+        ...base,
         name: "Base",
         icon: "🟦",
         factory: "0x58C3ccB2dcb9384E5AB9111CD1a5DEA916B0f33c",
         explorer: "https://basescan.org",
+        rpc: "https://mainnet.base.org",
     },
-    7777777: {
+    [zora.id]: {
+        ...zora,
         name: "Zora",
         icon: "🟪",
-        factory: "0xA2c2A96A232113Dd4993E8b048EEbc3371AE8d85",
+        factory: "0x7777777F279eba3d3Ad8F4E708545291A6fDBA8B",
         explorer: "https://explorer.zora.energy",
+        rpc: "https://rpc.zora.energy",
     },
-    10: {
+    [optimism.id]: {
+        ...optimism,
         name: "Optimism",
-        icon: "🟥",
-        factory: "0x7d1a46c6e614A0091c39E102F2798C27c1fA8892",
+        icon: "🟧",
+        factory: "0x7777777F279eba3d3Ad8F4E708545291A6fDBA8B",
         explorer: "https://optimistic.etherscan.io",
+        rpc: "https://mainnet.optimism.io",
     },
-    42161: {
+    [arbitrum.id]: {
+        ...arbitrum,
         name: "Arbitrum",
         icon: "🟨",
-        factory: "0xa5f8577cCA2eE9d5577E76385dB1Af51517c76bb",
+        factory: "0x7777777F279eba3d3Ad8F4E708545291A6fDBA8B",
         explorer: "https://arbiscan.io",
+        rpc: "https://arb1.arbitrum.io/rpc",
     },
-    81457: {
+    [blast.id]: {
+        ...blast,
         name: "Blast",
-        icon: "🟧",
-        factory: "0x53a85FbD2955EF713AA489Ae0C48523E727a0c07",
+        icon: "💥",
+        factory: "0x7777777F279eba3d3Ad8F4E708545291A6fDBA8B",
         explorer: "https://blastscan.io",
+        rpc: "https://rpc.blast.io",
     },
 } as const;

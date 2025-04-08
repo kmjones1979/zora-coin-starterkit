@@ -7,9 +7,11 @@ import {
     useChainId,
 } from "wagmi";
 import { waitForTransaction } from "wagmi/actions";
-import { createCoinCall } from "@zoralabs/coins-sdk";
+import { createCoinCall, getCoinCreateFromLogs } from "@zoralabs/coins-sdk";
 import { zora, base, optimism, arbitrum, blast } from "viem/chains";
 import { Address as ViemAddress, TransactionReceipt, Log } from "viem";
+import { CHAINS } from "../config/chains";
+import { http } from "viem";
 
 interface UseCoinCreationProps {
     name: string;
@@ -115,6 +117,44 @@ export function useCoinCreation({
             setStatus(`Error: ${writeError.message}`);
         }
     }, [writeError]);
+
+    useEffect(() => {
+        const handleTransactionReceipt = async () => {
+            if (hash && publicClient) {
+                try {
+                    const receipt =
+                        await publicClient.waitForTransactionReceipt({
+                            hash,
+                        });
+
+                    if (receipt.status === "success") {
+                        const coinDeployment = getCoinCreateFromLogs(receipt);
+                        if (coinDeployment?.coin) {
+                            setTokenAddress(coinDeployment.coin);
+                            setStatus("Coin created successfully!");
+                        } else {
+                            setError(
+                                new Error(
+                                    "Failed to extract coin address from transaction receipt"
+                                )
+                            );
+                            setStatus(
+                                "Transaction successful but failed to get coin address"
+                            );
+                        }
+                    } else {
+                        setError(new Error("Transaction failed"));
+                        setStatus("Transaction failed");
+                    }
+                } catch (err) {
+                    setError(err as Error);
+                    setStatus("Error processing transaction receipt");
+                }
+            }
+        };
+
+        handleTransactionReceipt();
+    }, [hash, publicClient]);
 
     const resetTransaction = () => {
         setError(null);
