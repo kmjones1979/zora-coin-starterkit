@@ -1168,3 +1168,208 @@ function TokenPage({ contractAddress }: { contractAddress: `0x${string}` }) {
     );
 }
 ```
+
+## Usage Examples
+
+### Example 1: Creating a Coin Creation Page
+
+1. Create a new page at `app/create/page.tsx`:
+
+```tsx
+"use client";
+
+import { CreateCoin } from "../components/CreateCoin";
+import { Header } from "../components/Header";
+
+export default function CreatePage() {
+    return (
+        <div className="min-h-screen bg-background">
+            <Header />
+            <main className="container mx-auto px-4 py-8">
+                <div className="max-w-2xl mx-auto">
+                    <h1 className="text-3xl font-bold mb-8">Create New Coin</h1>
+                    <CreateCoin />
+                </div>
+            </main>
+        </div>
+    );
+}
+```
+
+### Example 2: Creating a Coin Explorer Page
+
+1. Create a new page at `app/explore/page.tsx`:
+
+```tsx
+"use client";
+
+import { GetCoins } from "../components/GetCoins";
+import { Header } from "../components/Header";
+
+export default function ExplorePage() {
+    return (
+        <div className="min-h-screen bg-background">
+            <Header />
+            <main className="container mx-auto px-4 py-8">
+                <div className="space-y-8">
+                    <h1 className="text-3xl font-bold">Explore Coins</h1>
+                    <GetCoins count={25} initialType="topVolume" />
+                </div>
+            </main>
+        </div>
+    );
+}
+```
+
+### Example 3: Creating a Coin Details Page
+
+> Coming soon!
+
+1. Create a new page at `app/coin/[address]/page.tsx`:
+
+```tsx
+"use client";
+
+import { GetCoin } from "../../components/GetCoin";
+import { Header } from "../../components/Header";
+
+export default function CoinPage({ params }: { params: { address: string } }) {
+    return (
+        <div className="min-h-screen bg-background">
+            <Header />
+            <main className="container mx-auto px-4 py-8">
+                <div className="max-w-4xl mx-auto">
+                    <GetCoin address={params.address} />
+                </div>
+            </main>
+        </div>
+    );
+}
+```
+
+### Example 4: Creating a Dashboard with Multiple Components
+
+1. Create a new page at `app/dashboard/page.tsx`:
+
+```tsx
+"use client";
+
+import { GetCoins } from "../components/GetCoins";
+import { CreateCoin } from "../components/CreateCoin";
+import { Header } from "../components/Header";
+
+export default function DashboardPage() {
+    return (
+        <div className="min-h-screen bg-background">
+            <Header />
+            <main className="container mx-auto px-4 py-8">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div className="space-y-8">
+                        <h2 className="text-2xl font-bold">Create New Coin</h2>
+                        <CreateCoin />
+                    </div>
+                    <div className="space-y-8">
+                        <h2 className="text-2xl font-bold">Recent Coins</h2>
+                        <GetCoins count={10} initialType="new" />
+                    </div>
+                </div>
+            </main>
+        </div>
+    );
+}
+```
+
+### Example 5: Creating a Custom Coin List Page with Pagination
+
+1. Create a new page at `app/coins/page.tsx`:
+
+```tsx
+"use client";
+
+import { useState } from "react";
+import { GetCoins } from "../components/GetCoins";
+import { Header } from "../components/Header";
+
+export default function CoinsPage() {
+    const [after, setAfter] = useState<string | undefined>();
+    const [count, setCount] = useState(25);
+
+    return (
+        <div className="min-h-screen bg-background">
+            <Header />
+            <main className="container mx-auto px-4 py-8">
+                <div className="space-y-8">
+                    <h1 className="text-3xl font-bold">All Coins</h1>
+                    <div className="flex gap-4">
+                        <button
+                            onClick={() =>
+                                setCount((prev) => Math.min(prev + 25, 100))
+                            }
+                            className="px-4 py-2 bg-primary text-white rounded"
+                        >
+                            Load More
+                        </button>
+                        <button
+                            onClick={() => setCount(25)}
+                            className="px-4 py-2 bg-secondary text-white rounded"
+                        >
+                            Reset
+                        </button>
+                    </div>
+                    <GetCoins count={count} after={after} initialType="new" />
+                </div>
+            </main>
+        </div>
+    );
+}
+```
+
+### Example 6: Creating a Custom Coin Explorer with Type Selection
+
+1. Create a new page at `app/explorer/page.tsx`:
+
+```tsx
+"use client";
+
+import { useState } from "react";
+import { GetCoins } from "../components/GetCoins";
+import { Header } from "../components/Header";
+import { ExploreTypeSelector } from "../components/ExploreTypeSelector";
+
+export default function ExplorerPage() {
+    const [type, setType] = useState<ExploreQueryType>("topVolume");
+
+    return (
+        <div className="min-h-screen bg-background">
+            <Header />
+            <main className="container mx-auto px-4 py-8">
+                <div className="space-y-8">
+                    <div className="flex justify-between items-center">
+                        <h1 className="text-3xl font-bold">Coin Explorer</h1>
+                        <ExploreTypeSelector
+                            value={type}
+                            onValueChange={setType}
+                        />
+                    </div>
+                    <GetCoins count={25} initialType={type} />
+                </div>
+            </main>
+        </div>
+    );
+}
+```
+
+These examples demonstrate how to:
+
+1. Create dedicated pages for different coin-related features
+2. Combine multiple components in a single page
+3. Implement pagination and type selection
+4. Create custom layouts and user interfaces
+5. Handle different coin viewing scenarios
+
+Each example can be extended with additional features like:
+
+-   Loading states
+-   Error handling
+-   Custom styling
+-   Additional functionality
