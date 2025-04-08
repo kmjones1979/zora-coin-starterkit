@@ -12,6 +12,7 @@ import {
 import { useChainId } from "wagmi";
 import { CHAINS } from "../config/chains";
 import { ExploreTypeSelector, ExploreQueryType } from "./ExploreTypeSelector";
+import { CountSelector } from "./CountSelector";
 
 interface Coin {
     name: string;
@@ -33,7 +34,7 @@ interface GetCoinsProps {
 }
 
 export function GetCoins({
-    count = 10,
+    count: initialCount = 10,
     after,
     initialType = "new",
 }: GetCoinsProps) {
@@ -42,6 +43,7 @@ export function GetCoins({
     const [error, setError] = useState<string | null>(null);
     const [mounted, setMounted] = useState(false);
     const [type, setType] = useState<ExploreQueryType>(initialType);
+    const [count, setCount] = useState(initialCount);
     const chainId = useChainId();
 
     useEffect(() => {
@@ -67,7 +69,9 @@ export function GetCoins({
                     chainId,
                     CHAINS[chainId as keyof typeof CHAINS]?.name,
                     "with type:",
-                    type
+                    type,
+                    "and count:",
+                    count
                 );
 
                 let response;
@@ -205,7 +209,10 @@ export function GetCoins({
                 <h2 className="text-xl font-semibold text-black">
                     {getTitle()}
                 </h2>
-                <ExploreTypeSelector value={type} onValueChange={setType} />
+                <div className="flex gap-4">
+                    <ExploreTypeSelector value={type} onValueChange={setType} />
+                    <CountSelector value={count} onValueChange={setCount} />
+                </div>
             </div>
             {!chainId || !(chainId in CHAINS) ? (
                 <div className="p-4 bg-yellow-50 rounded-lg">
