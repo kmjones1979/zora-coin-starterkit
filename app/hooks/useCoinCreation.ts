@@ -142,6 +142,7 @@ export function useCoinCreation({
                         });
 
                     if (receipt.status === "success") {
+                        setError(null);
                         const coinDeployment = getCoinCreateFromLogs(receipt);
                         if (coinDeployment?.coin) {
                             setTokenAddress(coinDeployment.coin);

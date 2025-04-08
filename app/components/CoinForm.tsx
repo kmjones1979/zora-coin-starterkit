@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
+import { Checkbox } from "./ui/checkbox";
 import { useCoinCreation } from "../hooks/useCoinCreation";
 import { useAccount, useChainId } from "wagmi";
-import { Address } from "viem";
+import { Address, parseEther, formatEther } from "viem";
 import { CHAINS } from "../config/chains";
 
 interface TransactionStatusProps {
@@ -121,6 +122,33 @@ export function CoinForm({ onSuccess }: CoinFormProps) {
     const [tokenAddress, setTokenAddress] = useState<`0x${string}` | null>(
         null
     );
+    const [performInitialPurchase, setPerformInitialPurchase] = useState(false);
+    const [initialEthAmount, setInitialEthAmount] = useState("0");
+    const [initialWeiAmount, setInitialWeiAmount] = useState<bigint>(BigInt(0));
+
+    useEffect(() => {
+        try {
+            if (
+                initialEthAmount &&
+                !isNaN(parseFloat(initialEthAmount)) &&
+                parseFloat(initialEthAmount) >= 0
+            ) {
+                const wei = parseEther(initialEthAmount as `${number}`);
+                setInitialWeiAmount(wei);
+                setError(null);
+            } else if (initialEthAmount === "") {
+                setInitialWeiAmount(BigInt(0));
+            } else {
+                if (initialEthAmount !== "." && initialEthAmount !== "") {
+                    setError("Invalid ETH amount");
+                }
+                setInitialWeiAmount(BigInt(0));
+            }
+        } catch (e) {
+            setError("Invalid ETH amount format");
+            setInitialWeiAmount(BigInt(0));
+        }
+    }, [initialEthAmount]);
 
     const {
         write,
@@ -138,27 +166,53 @@ export function CoinForm({ onSuccess }: CoinFormProps) {
         payoutRecipient:
             address || "0x0000000000000000000000000000000000000000",
         platformReferrer: address || undefined,
-        initialPurchaseWei: BigInt(0),
+        initialPurchaseWei: performInitialPurchase
+            ? initialWeiAmount
+            : BigInt(0),
         chainId,
     });
 
+    const handleEthAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value;
+        if (/^\d*\.?\d*$/.test(value)) {
+            setInitialEthAmount(value);
+        }
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (
+            performInitialPurchase &&
+            initialWeiAmount <= BigInt(0) &&
+            initialEthAmount !== "0" &&
+            initialEthAmount !== ""
+        ) {
+            setError("Initial purchase amount must be greater than 0 ETH.");
+            return;
+        }
         setError(null);
+
+        if (performInitialPurchase) {
+            console.log(
+                "[Debug] Attempting initial purchase with Wei amount:",
+                initialWeiAmount.toString()
+            );
+        } else {
+            console.log("[Debug] No initial purchase requested.");
+        }
+
         write?.();
     };
 
-    // Call onSuccess when transaction is complete
     if (transactionHash && status === "success") {
         onSuccess?.(transactionHash);
-        setTokenAddress(contractTokenAddress);
     }
 
     return (
-        <div className="card bg-white shadow-xl">
+        <div className="card bg-background shadow-xl">
             <div className="card-body">
-                <h2 className="card-title">Create New Coin</h2>
-                <form onSubmit={handleSubmit} className="space-y-4">
+                <h2 className="card-title text-foreground">Create New Coin</h2>
+                <form onSubmit={handleSubmit} className="space-y-6">
                     <div>
                         <Label htmlFor="name">Coin Name</Label>
                         <Input
@@ -167,7 +221,7 @@ export function CoinForm({ onSuccess }: CoinFormProps) {
                             onChange={(e) => setName(e.target.value)}
                             placeholder="My Awesome Coin"
                             required
-                            className="text-black"
+                            className="text-foreground"
                         />
                         <p className="text-sm text-gray-500 mt-1">
                             Example: My Awesome Coin
@@ -182,7 +236,7 @@ export function CoinForm({ onSuccess }: CoinFormProps) {
                             onChange={(e) => setSymbol(e.target.value)}
                             placeholder="MAC"
                             required
-                            className="text-black"
+                            className="text-foreground"
                         />
                         <p className="text-sm text-gray-500 mt-1">
                             Example: MAC
@@ -190,14 +244,14 @@ export function CoinForm({ onSuccess }: CoinFormProps) {
                     </div>
 
                     <div>
-                        <Label htmlFor="uri">IPFS Hash</Label>
+                        <Label htmlFor="uri">IPFS Hash (Metadata)</Label>
                         <Input
                             id="uri"
                             value={uri}
                             onChange={(e) => setUri(e.target.value)}
                             placeholder="ipfs://Qm..."
                             required
-                            className="text-black"
+                            className="text-foreground"
                         />
                         <p className="text-sm text-gray-500 mt-1">
                             Example:
@@ -205,16 +259,73 @@ export function CoinForm({ onSuccess }: CoinFormProps) {
                         </p>
                     </div>
 
-                    <Button type="submit" disabled={isLoading}>
+                    <div className="flex items-center space-x-2">
+                        <Checkbox
+                            id="initialPurchase"
+                            checked={performInitialPurchase}
+                            onCheckedChange={(checked: boolean) =>
+                                setPerformInitialPurchase(Boolean(checked))
+                            }
+                        />
+                        <Label
+                            htmlFor="initialPurchase"
+                            className="cursor-pointer"
+                        >
+                            Perform Initial Purchase?
+                        </Label>
+                    </div>
+
+                    {performInitialPurchase && (
+                        <div className="space-y-2">
+                            <Label htmlFor="ethAmount">
+                                Initial Purchase (ETH)
+                            </Label>
+                            <div className="flex items-center space-x-2">
+                                <Input
+                                    id="ethAmount"
+                                    type="text"
+                                    value={initialEthAmount}
+                                    onChange={handleEthAmountChange}
+                                    placeholder="0.01"
+                                    className="text-foreground w-1/2"
+                                />
+                                <span
+                                    className="text-sm text-muted-foreground flex-shrink-0"
+                                    title={initialWeiAmount.toString() + " Wei"}
+                                >
+                                    ≈ {formatEther(initialWeiAmount)} ETH *
+                                    <br />
+                                    <i className="text-xs">
+                                        (Calculated:{" "}
+                                        {initialWeiAmount.toString()} Wei)
+                                    </i>
+                                </span>
+                            </div>
+                            {error &&
+                                (initialEthAmount !== "" ||
+                                    !performInitialPurchase) && (
+                                    <p className="text-red-500 text-sm mt-1">
+                                        {error}
+                                    </p>
+                                )}
+                            <p className="text-xs text-muted-foreground mt-1">
+                                * Enter the amount of ETH to spend on the
+                                initial purchase.
+                            </p>
+                        </div>
+                    )}
+
+                    <Button
+                        type="submit"
+                        disabled={
+                            isLoading || (performInitialPurchase && !!error)
+                        }
+                    >
                         {isLoading ? "Creating..." : "Create Coin"}
                     </Button>
 
-                    {error && (
-                        <div className="text-red-500">Error: {error}</div>
-                    )}
-
                     {contractError && (
-                        <div className="text-red-500">
+                        <div className="text-red-500 mt-2">
                             Error: {contractError.message}
                         </div>
                     )}
@@ -227,7 +338,7 @@ export function CoinForm({ onSuccess }: CoinFormProps) {
                     symbol={symbol}
                     uri={uri}
                     chainId={chainId}
-                    tokenAddress={tokenAddress || undefined}
+                    tokenAddress={contractTokenAddress || undefined}
                 />
             </div>
         </div>
