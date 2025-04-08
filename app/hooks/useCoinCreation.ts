@@ -12,6 +12,7 @@ import { zora, base, optimism, arbitrum, blast } from "viem/chains";
 import { Address as ViemAddress, TransactionReceipt, Log } from "viem";
 import { CHAINS } from "../config/chains";
 import { http } from "viem";
+import { useDebug } from "../contexts/DebugContext";
 
 interface UseCoinCreationProps {
     name: string;
@@ -49,6 +50,7 @@ export function useCoinCreation({
     const [tokenAddress, setTokenAddress] = useState<ViemAddress | null>(null);
     const { address } = useAccount();
     const publicClient = usePublicClient();
+    const { isDebug } = useDebug();
 
     const coinParams = {
         name: name.trim(),
@@ -61,13 +63,17 @@ export function useCoinCreation({
         initialPurchaseWei,
     };
 
-    console.log("Coin creation parameters:", {
-        ...coinParams,
-        initialPurchaseWei: initialPurchaseWei.toString(),
-    });
+    if (isDebug) {
+        console.log("Coin creation parameters:", {
+            ...coinParams,
+            initialPurchaseWei: initialPurchaseWei.toString(),
+        });
+    }
 
     const contractCallParams = createCoinCall(coinParams);
-    console.log("Contract call parameters:", contractCallParams);
+    if (isDebug) {
+        console.log("Contract call parameters:", contractCallParams);
+    }
 
     const {
         writeContract,
@@ -77,13 +83,17 @@ export function useCoinCreation({
     } = useContractWrite({
         mutation: {
             onSuccess: () => {
-                console.log("Transaction sent with hash:", hash);
+                if (isDebug) {
+                    console.log("Transaction sent with hash:", hash);
+                }
                 setStatus(
                     "Transaction sent! Please check the explorer for confirmation."
                 );
             },
             onError: (err) => {
-                console.error("Transaction failed:", err);
+                if (isDebug) {
+                    console.error("Transaction failed:", err);
+                }
                 if (err.message?.includes("insufficient funds")) {
                     setStatus("Transaction failed: Insufficient funds for gas");
                 } else if (err.message?.includes("user rejected")) {
@@ -106,17 +116,21 @@ export function useCoinCreation({
 
     useEffect(() => {
         if (hash) {
-            console.log("Transaction sent with hash:", hash);
+            if (isDebug) {
+                console.log("Transaction sent with hash:", hash);
+            }
             setStatus(`Transaction sent! Hash: ${hash}`);
         }
-    }, [hash]);
+    }, [hash, isDebug]);
 
     useEffect(() => {
         if (writeError) {
-            console.error("Write error:", writeError);
+            if (isDebug) {
+                console.error("Write error:", writeError);
+            }
             setStatus(`Error: ${writeError.message}`);
         }
-    }, [writeError]);
+    }, [writeError, isDebug]);
 
     useEffect(() => {
         const handleTransactionReceipt = async () => {
@@ -147,6 +161,12 @@ export function useCoinCreation({
                         setStatus("Transaction failed");
                     }
                 } catch (err) {
+                    if (isDebug) {
+                        console.error(
+                            "Error processing transaction receipt:",
+                            err
+                        );
+                    }
                     setError(err as Error);
                     setStatus("Error processing transaction receipt");
                 }
@@ -154,7 +174,7 @@ export function useCoinCreation({
         };
 
         handleTransactionReceipt();
-    }, [hash, publicClient]);
+    }, [hash, publicClient, isDebug]);
 
     const resetTransaction = () => {
         setError(null);

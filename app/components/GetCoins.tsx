@@ -13,6 +13,7 @@ import { useChainId } from "wagmi";
 import { CHAINS } from "../config/chains";
 import { ExploreTypeSelector, ExploreQueryType } from "./ExploreTypeSelector";
 import { CountSelector } from "./CountSelector";
+import { useDebug } from "../contexts/DebugContext";
 
 interface Coin {
     name: string;
@@ -45,6 +46,7 @@ export function GetCoins({
     const [type, setType] = useState<ExploreQueryType>(initialType);
     const [count, setCount] = useState(initialCount);
     const chainId = useChainId();
+    const { isDebug } = useDebug();
 
     useEffect(() => {
         setMounted(true);
@@ -58,21 +60,25 @@ export function GetCoins({
 
                 // Check if the current chain is supported
                 if (!chainId || !(chainId in CHAINS)) {
-                    console.log("Unsupported chain:", chainId);
+                    if (isDebug) {
+                        console.log("Unsupported chain:", chainId);
+                    }
                     setError("Please switch to a supported network");
                     setLoading(false);
                     return;
                 }
 
-                console.log(
-                    "Fetching coins for chain:",
-                    chainId,
-                    CHAINS[chainId as keyof typeof CHAINS]?.name,
-                    "with type:",
-                    type,
-                    "and count:",
-                    count
-                );
+                if (isDebug) {
+                    console.log(
+                        "Fetching coins for chain:",
+                        chainId,
+                        CHAINS[chainId as keyof typeof CHAINS]?.name,
+                        "with type:",
+                        type,
+                        "and count:",
+                        count
+                    );
+                }
 
                 let response;
                 switch (type) {
@@ -104,7 +110,12 @@ export function GetCoins({
                 if (!response) {
                     throw new Error("Failed to fetch coins");
                 }
-                console.log("API Response:", JSON.stringify(response, null, 2));
+                if (isDebug) {
+                    console.log(
+                        "API Response:",
+                        JSON.stringify(response, null, 2)
+                    );
+                }
 
                 if (response.data?.exploreList?.edges) {
                     const fetchedCoins = response.data.exploreList.edges
@@ -125,23 +136,29 @@ export function GetCoins({
                                 new Date(b.createdAt).getTime() -
                                 new Date(a.createdAt).getTime()
                         );
-                    console.log("Processed coins:", fetchedCoins);
+                    if (isDebug) {
+                        console.log("Processed coins:", fetchedCoins);
+                    }
                     setCoins(fetchedCoins);
                 } else {
-                    console.log(
-                        "No coins found in response. Response structure:",
-                        {
-                            hasData: !!response.data,
-                            hasExploreList: !!response.data?.exploreList,
-                            hasEdges: !!response.data?.exploreList?.edges,
-                            edgesLength:
-                                response.data?.exploreList?.edges?.length,
-                        }
-                    );
+                    if (isDebug) {
+                        console.log(
+                            "No coins found in response. Response structure:",
+                            {
+                                hasData: !!response.data,
+                                hasExploreList: !!response.data?.exploreList,
+                                hasEdges: !!response.data?.exploreList?.edges,
+                                edgesLength:
+                                    response.data?.exploreList?.edges?.length,
+                            }
+                        );
+                    }
                     setError("No coins found on this network");
                 }
             } catch (err) {
-                console.error("Error fetching coins:", err);
+                if (isDebug) {
+                    console.error("Error fetching coins:", err);
+                }
                 setError("Failed to fetch coins");
             } finally {
                 setLoading(false);
@@ -151,7 +168,7 @@ export function GetCoins({
         if (mounted) {
             fetchGetCoins();
         }
-    }, [chainId, mounted, count, after, type]);
+    }, [chainId, mounted, count, after, type, isDebug]);
 
     const formatDate = (dateString: string) => {
         const date = new Date(dateString);
@@ -204,9 +221,9 @@ export function GetCoins({
     }
 
     return (
-        <div className="p-6 bg-white rounded-lg shadow">
+        <div className="p-6 bg-background rounded-lg shadow">
             <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-semibold text-black">
+                <h2 className="text-xl font-semibold text-foreground">
                     {getTitle()}
                 </h2>
                 <div className="flex gap-4">
@@ -232,53 +249,53 @@ export function GetCoins({
                     {coins.map((coin, index) => (
                         <div
                             key={index}
-                            className="p-4 border rounded-lg hover:bg-gray-50"
+                            className="p-4 border border-border rounded-lg hover:bg-muted/50"
                         >
                             <div className="flex justify-between items-start mb-3">
                                 <div>
-                                    <h3 className="font-medium text-black">
+                                    <h3 className="font-medium text-foreground">
                                         {coin.name}
                                     </h3>
-                                    <p className="text-sm text-gray-600">
+                                    <p className="text-sm text-muted-foreground">
                                         {coin.symbol}
                                     </p>
                                 </div>
-                                <div className="text-sm text-gray-600">
+                                <div className="text-sm text-muted-foreground">
                                     {formatDate(coin.createdAt)}
                                 </div>
                             </div>
                             <div className="mt-3 text-sm space-y-2">
-                                <p className="text-gray-600">
+                                <p className="text-muted-foreground">
                                     Chain:{" "}
                                     {CHAINS[coin.chainId as keyof typeof CHAINS]
                                         ?.name || "Unknown Chain"}
                                 </p>
-                                <p className="text-gray-600">
+                                <p className="text-muted-foreground">
                                     Creator: {coin.creatorAddress.slice(0, 6)}
                                     ...
                                     {coin.creatorAddress.slice(-4)}
                                 </p>
-                                <p className="text-gray-600">
+                                <p className="text-muted-foreground">
                                     Contract: {coin.address.slice(0, 6)}...
                                     {coin.address.slice(-4)}
                                 </p>
                                 {coin.marketCap && (
-                                    <p className="text-gray-600">
+                                    <p className="text-muted-foreground">
                                         Market Cap: {coin.marketCap}
                                     </p>
                                 )}
                                 {coin.volume24h && (
-                                    <p className="text-gray-600">
+                                    <p className="text-muted-foreground">
                                         24h Volume: {coin.volume24h}
                                     </p>
                                 )}
                                 {coin.uniqueHolders && (
-                                    <p className="text-gray-600">
+                                    <p className="text-muted-foreground">
                                         Holders: {coin.uniqueHolders}
                                     </p>
                                 )}
                                 {coin.marketCapDelta24h && (
-                                    <p className="text-gray-600">
+                                    <p className="text-muted-foreground">
                                         24h Change: {coin.marketCapDelta24h}%
                                     </p>
                                 )}
@@ -289,7 +306,7 @@ export function GetCoins({
                                     }/address/${coin.address}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="text-blue-600 hover:text-blue-800 mt-2 inline-block"
+                                    className="text-primary hover:text-primary/80 mt-2 inline-block"
                                 >
                                     View on Explorer
                                 </a>
