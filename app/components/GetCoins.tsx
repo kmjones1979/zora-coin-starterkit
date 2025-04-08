@@ -15,7 +15,12 @@ interface Coin {
     chainId: number;
 }
 
-export function RecentCoins() {
+interface GetCoinsProps {
+    count?: number;
+    after?: string;
+}
+
+export function GetCoins({ count = 10, after }: GetCoinsProps) {
     const [coins, setCoins] = useState<Coin[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -27,21 +32,7 @@ export function RecentCoins() {
     }, []);
 
     useEffect(() => {
-        const fetchWithRetry = async (retries = 3, delay = 2000) => {
-            for (let i = 0; i < retries; i++) {
-                try {
-                    const response = await getCoinsNew({
-                        count: 10,
-                    });
-                    return response;
-                } catch (error) {
-                    if (i === retries - 1) throw error;
-                    await new Promise((resolve) => setTimeout(resolve, delay));
-                }
-            }
-        };
-
-        const fetchRecentCoins = async () => {
+        const fetchGetCoins = async () => {
             try {
                 setLoading(true);
                 setError(null);
@@ -60,7 +51,8 @@ export function RecentCoins() {
                     CHAINS[chainId as keyof typeof CHAINS]?.name
                 );
                 const response = await getCoinsNew({
-                    count: 10,
+                    count,
+                    after,
                 });
                 if (!response) {
                     throw new Error("Failed to fetch coins after retries");
@@ -98,9 +90,9 @@ export function RecentCoins() {
         };
 
         if (mounted) {
-            fetchRecentCoins();
+            fetchGetCoins();
         }
-    }, [chainId, mounted]);
+    }, [chainId, mounted, count]);
 
     const formatDate = (dateString: string) => {
         const date = new Date(dateString);
@@ -115,7 +107,7 @@ export function RecentCoins() {
         return (
             <div className="p-4 bg-white rounded-lg shadow">
                 <h2 className="text-xl font-semibold mb-4 ">
-                    Recent Coins on{" "}
+                    Get Coins on{" "}
                     {CHAINS[chainId as keyof typeof CHAINS]?.name ||
                         "Unknown Chain"}
                 </h2>

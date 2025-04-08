@@ -2,8 +2,8 @@
 
 import { Providers } from "./providers";
 import dynamic from "next/dynamic";
-import { CreateZoraCoin } from "./components/CreateZoraCoin";
-import { RecentCoins } from "./components/RecentCoins";
+import { CreateCoin } from "./components/CreateCoin";
+import { GetCoins } from "./components/GetCoins";
 import { Header } from "./components/Header";
 
 const WalletConnect = dynamic(
@@ -20,8 +20,8 @@ export default function Home() {
                 <Header />
                 <main className="container mx-auto px-4 py-8">
                     <div className="space-y-12">
-                        <CreateZoraCoin />
-                        <RecentCoins />
+                        <CreateCoin />
+                        <GetCoins count={50} />
                     </div>
                 </main>
             </div>

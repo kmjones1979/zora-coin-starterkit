@@ -14,7 +14,7 @@ interface Coin {
     symbol: string;
 }
 
-export function CreateZoraCoin() {
+export function CreateCoin() {
     const { address } = useAccount();
     const [recentCoins, setRecentCoins] = useState<Coin[]>([]);
     const [isLoading, setIsLoading] = useState(false);
