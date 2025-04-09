@@ -43,12 +43,10 @@ export function CreateCoin() {
     return (
         <div className="space-y-12">
             <div className="space-y-6">
-                <h2 className="text-2xl font-bold">Create Zora Coin</h2>
                 <CoinForm onSuccess={fetchRecentCoins} />
             </div>
 
             <div className="space-y-6">
-                <h2 className="text-2xl font-bold">Recent Coins</h2>
                 {isLoading && <div>Loading recent coins...</div>}
                 {error && (
                     <div className="text-red-500">

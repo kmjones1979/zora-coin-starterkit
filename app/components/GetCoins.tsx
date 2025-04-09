@@ -14,6 +14,7 @@ import { CHAINS } from "../config/chains";
 import { ExploreTypeSelector, ExploreQueryType } from "./ExploreTypeSelector";
 import { CountSelector } from "./CountSelector";
 import { useDebug } from "../contexts/DebugContext";
+import { Card, CardHeader, CardTitle, CardContent } from "./ui/card";
 
 interface Coin {
     name: string;
@@ -198,123 +199,123 @@ export function GetCoins({
         return null;
     }
 
-    if (loading) {
-        return (
-            <div className="p-4 bg-white rounded-lg shadow">
-                <h2 className="text-xl font-semibold mb-4">{getTitle()}</h2>
-                <div className="animate-pulse space-y-4">
-                    {[...Array(3)].map((_, i) => (
-                        <div key={i} className="h-20 bg-gray-200 rounded"></div>
-                    ))}
-                </div>
-            </div>
-        );
-    }
-
-    if (error) {
-        return (
-            <div className="p-4 bg-white rounded-lg shadow">
-                <h2 className="text-xl font-semibold mb-4">{getTitle()}</h2>
-                <div className="text-red-500">{error}</div>
-            </div>
-        );
-    }
-
     return (
-        <div className="p-6 bg-background rounded-lg shadow">
-            <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-semibold text-foreground">
-                    {getTitle()}
-                </h2>
-                <div className="flex gap-4">
-                    <ExploreTypeSelector value={type} onValueChange={setType} />
-                    <CountSelector value={count} onValueChange={setCount} />
+        <Card className="w-full max-w-2xl mx-auto shadow-lg">
+            <CardHeader>
+                <div className="flex justify-between items-center">
+                    <CardTitle className="text-2xl font-semibold text-foreground">
+                        {getTitle()}
+                    </CardTitle>
+                    <div className="flex gap-4">
+                        <ExploreTypeSelector
+                            value={type}
+                            onValueChange={setType}
+                        />
+                        <CountSelector value={count} onValueChange={setCount} />
+                    </div>
                 </div>
-            </div>
-            {!chainId || !(chainId in CHAINS) ? (
-                <div className="p-4 bg-yellow-50 rounded-lg">
-                    <p className="text-yellow-700">
-                        Please switch to a supported network (Base, Zora,
-                        Optimism, Arbitrum, or Blast).
-                    </p>
-                </div>
-            ) : coins.length === 0 ? (
-                <div className="p-4 bg-yellow-50 rounded-lg">
-                    <p className="text-yellow-700">
-                        No coins found. Try checking back later.
-                    </p>
-                </div>
-            ) : (
-                <div className="space-y-6">
-                    {coins.map((coin, index) => (
-                        <div
-                            key={index}
-                            className="p-4 border border-border rounded-lg hover:bg-muted/50"
-                        >
-                            <div className="flex justify-between items-start mb-3">
-                                <div>
-                                    <h3 className="font-medium text-foreground">
-                                        {coin.name}
-                                    </h3>
-                                    <p className="text-sm text-muted-foreground">
-                                        {coin.symbol}
-                                    </p>
+            </CardHeader>
+            <CardContent>
+                {loading ? (
+                    <div className="animate-pulse space-y-4">
+                        {[...Array(3)].map((_, i) => (
+                            <div
+                                key={i}
+                                className="h-20 bg-gray-200 rounded"
+                            ></div>
+                        ))}
+                    </div>
+                ) : error ? (
+                    <div className="text-red-500">{error}</div>
+                ) : !chainId || !(chainId in CHAINS) ? (
+                    <div className="p-4 bg-yellow-50 rounded-lg">
+                        <p className="text-yellow-700">
+                            Please switch to a supported network (Base, Zora,
+                            Optimism, Arbitrum, or Blast).
+                        </p>
+                    </div>
+                ) : coins.length === 0 ? (
+                    <div className="p-4 bg-yellow-50 rounded-lg">
+                        <p className="text-yellow-700">
+                            No coins found. Try checking back later.
+                        </p>
+                    </div>
+                ) : (
+                    <div className="space-y-6">
+                        {coins.map((coin, index) => (
+                            <div
+                                key={index}
+                                className="p-4 border border-border rounded-lg hover:bg-muted/50"
+                            >
+                                <div className="flex justify-between items-start mb-3">
+                                    <div>
+                                        <h3 className="font-medium text-foreground">
+                                            {coin.name}
+                                        </h3>
+                                        <p className="text-sm text-muted-foreground">
+                                            {coin.symbol}
+                                        </p>
+                                    </div>
+                                    <div className="text-sm text-muted-foreground">
+                                        {formatDate(coin.createdAt)}
+                                    </div>
                                 </div>
-                                <div className="text-sm text-muted-foreground">
-                                    {formatDate(coin.createdAt)}
+                                <div className="mt-3 text-sm space-y-2">
+                                    <p className="text-muted-foreground">
+                                        Chain:{" "}
+                                        {CHAINS[
+                                            coin.chainId as keyof typeof CHAINS
+                                        ]?.name || "Unknown Chain"}
+                                    </p>
+                                    <p className="text-muted-foreground">
+                                        Creator:{" "}
+                                        {coin.creatorAddress.slice(0, 6)}
+                                        ...
+                                        {coin.creatorAddress.slice(-4)}
+                                    </p>
+                                    <p className="text-muted-foreground">
+                                        Contract: {coin.address.slice(0, 6)}...
+                                        {coin.address.slice(-4)}
+                                    </p>
+                                    {coin.marketCap && (
+                                        <p className="text-muted-foreground">
+                                            Market Cap: {coin.marketCap}
+                                        </p>
+                                    )}
+                                    {coin.volume24h && (
+                                        <p className="text-muted-foreground">
+                                            24h Volume: {coin.volume24h}
+                                        </p>
+                                    )}
+                                    {coin.uniqueHolders && (
+                                        <p className="text-muted-foreground">
+                                            Holders: {coin.uniqueHolders}
+                                        </p>
+                                    )}
+                                    {coin.marketCapDelta24h && (
+                                        <p className="text-muted-foreground">
+                                            24h Change: {coin.marketCapDelta24h}
+                                            %
+                                        </p>
+                                    )}
+                                    <a
+                                        href={`${
+                                            CHAINS[
+                                                chainId as keyof typeof CHAINS
+                                            ].explorer
+                                        }/address/${coin.address}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-primary hover:text-primary/80 mt-2 inline-block"
+                                    >
+                                        View on Explorer
+                                    </a>
                                 </div>
                             </div>
-                            <div className="mt-3 text-sm space-y-2">
-                                <p className="text-muted-foreground">
-                                    Chain:{" "}
-                                    {CHAINS[coin.chainId as keyof typeof CHAINS]
-                                        ?.name || "Unknown Chain"}
-                                </p>
-                                <p className="text-muted-foreground">
-                                    Creator: {coin.creatorAddress.slice(0, 6)}
-                                    ...
-                                    {coin.creatorAddress.slice(-4)}
-                                </p>
-                                <p className="text-muted-foreground">
-                                    Contract: {coin.address.slice(0, 6)}...
-                                    {coin.address.slice(-4)}
-                                </p>
-                                {coin.marketCap && (
-                                    <p className="text-muted-foreground">
-                                        Market Cap: {coin.marketCap}
-                                    </p>
-                                )}
-                                {coin.volume24h && (
-                                    <p className="text-muted-foreground">
-                                        24h Volume: {coin.volume24h}
-                                    </p>
-                                )}
-                                {coin.uniqueHolders && (
-                                    <p className="text-muted-foreground">
-                                        Holders: {coin.uniqueHolders}
-                                    </p>
-                                )}
-                                {coin.marketCapDelta24h && (
-                                    <p className="text-muted-foreground">
-                                        24h Change: {coin.marketCapDelta24h}%
-                                    </p>
-                                )}
-                                <a
-                                    href={`${
-                                        CHAINS[chainId as keyof typeof CHAINS]
-                                            .explorer
-                                    }/address/${coin.address}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-primary hover:text-primary/80 mt-2 inline-block"
-                                >
-                                    View on Explorer
-                                </a>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            )}
-        </div>
+                        ))}
+                    </div>
+                )}
+            </CardContent>
+        </Card>
     );
 }

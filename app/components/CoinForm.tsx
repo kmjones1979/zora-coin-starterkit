@@ -9,6 +9,13 @@ import { useCoinCreation } from "../hooks/useCoinCreation";
 import { useAccount, useChainId } from "wagmi";
 import { Address, parseEther, formatEther } from "viem";
 import { CHAINS } from "../config/chains";
+import {
+    Card,
+    CardHeader,
+    CardTitle,
+    CardDescription,
+    CardContent,
+} from "./ui/card";
 
 interface TransactionStatusProps {
     transactionHash?: `0x${string}`;
@@ -209,9 +216,16 @@ export function CoinForm({ onSuccess }: CoinFormProps) {
     }
 
     return (
-        <div className="card bg-background shadow-xl">
-            <div className="card-body">
-                <h2 className="card-title text-foreground">Create New Coin</h2>
+        <Card className="w-full max-w-2xl mx-auto shadow-lg">
+            <CardHeader className="space-y-1">
+                <CardTitle className="text-3xl font-semibold text-foreground">
+                    Create New Coin
+                </CardTitle>
+                <CardDescription className="text-muted-foreground">
+                    Deploy your own ERC20 token on Zora
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
                 <form onSubmit={handleSubmit} className="space-y-6">
                     <div>
                         <Label htmlFor="name">Coin Name</Label>
@@ -340,7 +354,7 @@ export function CoinForm({ onSuccess }: CoinFormProps) {
                     chainId={chainId}
                     tokenAddress={contractTokenAddress || undefined}
                 />
-            </div>
-        </div>
+            </CardContent>
+        </Card>
     );
 }
