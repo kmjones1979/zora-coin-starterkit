@@ -13,6 +13,11 @@ import { useState, useEffect } from "react";
 
 const SUPPORTED_CHAINS = [
     {
+        id: 84532,
+        name: "Base Sepolia",
+        icon: "🔵",
+    },
+    {
         id: 8453,
         name: "Base",
         icon: "🟦",

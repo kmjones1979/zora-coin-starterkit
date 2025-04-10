@@ -169,7 +169,6 @@ export function CoinForm({ onSuccess }: CoinFormProps) {
         symbol,
         uri,
         owners: undefined,
-        tickLower: -199200,
         payoutRecipient:
             address || "0x0000000000000000000000000000000000000000",
         platformReferrer: address || undefined,

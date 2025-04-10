@@ -8,7 +8,14 @@ import {
 } from "wagmi";
 import { waitForTransaction } from "wagmi/actions";
 import { createCoinCall, getCoinCreateFromLogs } from "@zoralabs/coins-sdk";
-import { zora, base, optimism, arbitrum, blast } from "viem/chains";
+import {
+    zora,
+    base,
+    optimism,
+    arbitrum,
+    blast,
+    baseSepolia,
+} from "viem/chains";
 import { Address as ViemAddress, TransactionReceipt, Log } from "viem";
 import { CHAINS } from "../config/chains";
 import { http } from "viem";
@@ -19,7 +26,6 @@ interface UseCoinCreationProps {
     symbol: string;
     uri: string;
     owners?: ViemAddress[];
-    tickLower?: number;
     payoutRecipient: ViemAddress;
     platformReferrer?: ViemAddress;
     initialPurchaseWei?: bigint;
@@ -29,6 +35,7 @@ interface UseCoinCreationProps {
 const CHAIN_CONFIGS = {
     [zora.id]: zora,
     [base.id]: base,
+    [baseSepolia.id]: baseSepolia,
     [optimism.id]: optimism,
     [arbitrum.id]: arbitrum,
     [blast.id]: blast,
@@ -39,7 +46,6 @@ export function useCoinCreation({
     symbol,
     uri,
     owners,
-    tickLower = -199200,
     payoutRecipient,
     platformReferrer,
     initialPurchaseWei = BigInt(0),
@@ -57,7 +63,7 @@ export function useCoinCreation({
         symbol: symbol.trim(),
         uri: uri.trim(),
         owners: [payoutRecipient],
-        tickLower,
+        // tickLower: -199200,
         payoutRecipient,
         platformReferrer: payoutRecipient,
         initialPurchaseWei,
@@ -190,7 +196,6 @@ export function useCoinCreation({
                 abi: contractCallParams.abi,
                 functionName: contractCallParams.functionName,
                 args: contractCallParams.args,
-                chainId,
                 value: initialPurchaseWei,
             });
         } catch (err) {

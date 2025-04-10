@@ -1,13 +1,28 @@
-import { zora, base, optimism, arbitrum, blast } from "viem/chains";
+import {
+    zora,
+    base,
+    optimism,
+    arbitrum,
+    blast,
+    baseSepolia,
+} from "viem/chains";
 
 export const CHAINS = {
     [base.id]: {
         ...base,
         name: "Base",
         icon: "🟦",
-        factory: "0x58C3ccB2dcb9384E5AB9111CD1a5DEA916B0f33c",
+        factory: "0x777777751622c0d3258f214F9DF38E35BF45baF3",
         explorer: "https://basescan.org",
         rpc: "https://mainnet.base.org",
+    },
+    [baseSepolia.id]: {
+        ...baseSepolia,
+        name: "Base Sepolia",
+        icon: "🔵",
+        factory: "0x777777751622c0d3258f214F9DF38E35BF45baF3",
+        explorer: "https://sepolia.basescan.org",
+        rpc: "https://sepolia.base.org",
     },
     [zora.id]: {
         ...zora,
