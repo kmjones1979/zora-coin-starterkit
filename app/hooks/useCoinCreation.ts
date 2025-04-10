@@ -63,10 +63,11 @@ export function useCoinCreation({
         symbol: symbol.trim(),
         uri: uri.trim(),
         owners: [payoutRecipient],
-        // tickLower: -199200,
         payoutRecipient,
         platformReferrer: payoutRecipient,
         initialPurchaseWei,
+        factoryAddress: CHAINS[chainId as keyof typeof CHAINS]
+            .factory as `0x${string}`,
     };
 
     if (isDebug) {
@@ -189,13 +190,26 @@ export function useCoinCreation({
         setTokenAddress(null);
     };
 
-    const write = () => {
+    const write = async () => {
         try {
+            const params = await contractCallParams;
+            if (isDebug) {
+                console.log("Contract call parameters:", {
+                    address: params.address,
+                    factoryAddress:
+                        CHAINS[chainId as keyof typeof CHAINS].factory,
+                    chainId,
+                    abi: params.abi,
+                    functionName: params.functionName,
+                    args: params.args,
+                });
+            }
             writeContract({
-                address: contractCallParams.address,
-                abi: contractCallParams.abi,
-                functionName: contractCallParams.functionName,
-                args: contractCallParams.args,
+                address: CHAINS[chainId as keyof typeof CHAINS]
+                    .factory as `0x${string}`,
+                abi: params.abi,
+                functionName: params.functionName,
+                args: params.args,
                 value: initialPurchaseWei,
             });
         } catch (err) {
