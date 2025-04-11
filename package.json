@@ -1,41 +1,19 @@
 {
-    "name": "my-hackathon",
-    "version": "0.1.0",
+    "name": "zora-coin-monorepo",
     "private": true,
+    "workspaces": [
+        "apps/*",
+        "packages/*"
+    ],
     "scripts": {
-        "dev": "next dev --turbopack",
-        "build": "next build",
-        "start": "next start",
-        "lint": "next lint"
-    },
-    "dependencies": {
-        "@radix-ui/react-dropdown-menu": "^2.1.6",
-        "@radix-ui/react-select": "^2.1.7",
-        "@radix-ui/react-slot": "^1.1.2",
-        "@rainbow-me/rainbowkit": "^2.2.4",
-        "@tanstack/react-query": "^5.71.10",
-        "@zoralabs/coins-sdk": "^0.0.7",
-        "class-variance-authority": "^0.7.1",
-        "clsx": "^2.1.1",
-        "ethers": "^6.13.5",
-        "lucide-react": "^0.487.0",
-        "next": "15.2.4",
-        "react": "^19.0.0",
-        "react-dom": "^19.0.0",
-        "tailwind-merge": "^3.1.0",
-        "tailwindcss-animate": "^1.0.7",
-        "viem": "^2.25.0",
-        "wagmi": "^2.14.16"
+        "build": "turbo run build",
+        "dev": "turbo run dev",
+        "lint": "turbo run lint",
+        "format": "prettier --write \"**/*.{ts,tsx,md}\""
     },
     "devDependencies": {
-        "@tailwindcss/postcss": "^4",
-        "@types/node": "^20",
-        "@types/react": "^19",
-        "@types/react-dom": "^19",
-        "autoprefixer": "^10.4.21",
-        "daisyui": "^5.0.12",
-        "postcss": "^8.5.3",
-        "tailwindcss": "^3.4.1",
-        "typescript": "^5"
-    }
+        "turbo": "latest",
+        "prettier": "^3.0.0"
+    },
+    "packageManager": "npm@10.2.4"
 }
