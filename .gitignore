@@ -18,6 +18,15 @@
 /out/
 apps/web/.next/
 apps/web/out/
+**/.next/
+**/out/
+.next/
+out/
+
+# next.js build cache
+.next/cache/
+**/.next/cache/
+apps/web/.next/cache/
 
 # webpack
 *.hot-update.js
