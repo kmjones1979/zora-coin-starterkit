@@ -18,6 +18,7 @@ import {
 } from "viem/chains";
 import { Address as ViemAddress, TransactionReceipt, Log } from "viem";
 import { CHAINS } from "../config/chains";
+import { coinFactoryABI } from "../config/abis";
 import { http } from "viem";
 import { useDebug } from "../contexts/DebugContext";
 
@@ -205,7 +206,11 @@ export function useCoinCreation({
                 abi: contractCallParams.abi,
                 functionName: contractCallParams.functionName,
                 args: contractCallParams.args,
-                value: initialPurchaseWei,
+                value: initialPurchaseWei
+                    ? BigInt(initialPurchaseWei)
+                    : undefined,
+                chain: CHAIN_CONFIGS[chainId],
+                account: address as `0x${string}`,
             });
         } catch (err) {
             setError(err as Error);
