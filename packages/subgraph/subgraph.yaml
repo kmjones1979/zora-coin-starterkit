@@ -17,6 +17,7 @@ dataSources:
           language: wasm/assemblyscript
           entities:
               - CoinCreated
+              - Caller
               - Initialized
               - OwnershipTransferred
               - Upgraded

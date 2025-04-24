@@ -120,6 +120,34 @@ export function handleCoinCreated(event: CoinCreated): void {
 }
 ```
 
+#### Queries
+
+```
+{
+  callers(first: 5, orderBy: blockTimestamp, orderDirection: desc) {
+    id
+    coinsCreated {
+      id
+      blockNumber
+      blockTimestamp
+      coin
+      currency
+      name
+      payoutRecipient
+      platformReferrer
+      pool
+      symbol
+      transactionHash
+      uri
+      version
+    }
+    blockNumber
+    blockTimestamp
+    transactionHash
+  }
+}
+```
+
 ## Implementation Guide
 
 ### Setting Up the Web Application

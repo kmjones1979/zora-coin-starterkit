@@ -6,16 +6,27 @@ import {
 } from "../generated/ZoraFactoryImpl/ZoraFactoryImpl";
 import {
     CoinCreated,
+    Caller,
     Initialized,
     OwnershipTransferred,
     Upgraded,
 } from "../generated/schema";
 
 export function handleCoinCreated(event: CoinCreatedEvent): void {
+    let caller = Caller.load(event.params.caller);
+
+    if (caller === null) {
+        caller = new Caller(event.params.caller);
+        caller.blockNumber = event.block.number;
+        caller.blockTimestamp = event.block.timestamp;
+        caller.transactionHash = event.transaction.hash;
+        caller.save();
+    }
+
     let entity = new CoinCreated(
         event.transaction.hash.concatI32(event.logIndex.toI32())
     );
-    entity.caller = event.params.caller;
+    entity.caller = caller.id;
     entity.payoutRecipient = event.params.payoutRecipient;
     entity.platformReferrer = event.params.platformReferrer;
     entity.currency = event.params.currency;

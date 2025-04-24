@@ -1,6 +1,6 @@
 type CoinCreated @entity(immutable: true) {
     id: Bytes!
-    caller: Bytes! # address
+    caller: Caller!
     payoutRecipient: Bytes! # address
     platformReferrer: Bytes! # address
     currency: Bytes! # address
@@ -10,6 +10,14 @@ type CoinCreated @entity(immutable: true) {
     coin: Bytes! # address
     pool: Bytes! # address
     version: String! # string
+    blockNumber: BigInt!
+    blockTimestamp: BigInt!
+    transactionHash: Bytes!
+}
+
+type Caller @entity(immutable: true) {
+    id: Bytes!
+    coinsCreated: [CoinCreated!]! @derivedFrom(field: "caller")
     blockNumber: BigInt!
     blockTimestamp: BigInt!
     transactionHash: Bytes!
