@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist } from "next/font/google";
 import "./global.css";
 import { ThemeProvider } from "./contexts/ThemeContext";
+import { Providers } from "./providers";
 
 const geist = Geist({
     subsets: ["latin"],
@@ -21,7 +22,7 @@ export default function RootLayout({
     return (
         <html lang="en" suppressHydrationWarning>
             <body className={`${geist.variable} antialiased`}>
-                <ThemeProvider>{children}</ThemeProvider>
+                <Providers>{children}</Providers>
             </body>
         </html>
     );

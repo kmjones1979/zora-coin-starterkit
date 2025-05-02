@@ -148,6 +148,86 @@ export function handleCoinCreated(event: CoinCreated): void {
 }
 ```
 
+## Subgraph Explorer Page
+
+### Overview
+
+The web application now includes a **Subgraph Explorer** page, accessible from the main navigation. This page allows you to query and explore data from your deployed subgraph on The Graph's decentralized network.
+
+- **Purpose:**
+    - Query and visualize data indexed by your subgraph.
+    - Useful for debugging, analytics, and exploring on-chain data indexed by your deployment.
+- **Location:**
+    - Accessible at `/subgraph-explorer` in the web app.
+    - Linked in the main navigation as "Subgraph Explorer".
+
+### Usage
+
+1. **API Key Requirement**
+
+    - To query The Graph's decentralized gateway, you must provide an API key.
+    - Add the following to your `.env` file in `apps/web/`:
+        ```
+        NEXT_PUBLIC_GRAPH_API_KEY=your_api_key_here
+        ```
+    - You can obtain an API key from The Graph's dashboard.
+    - **Restart your dev server** after editing the `.env` file.
+
+2. **Subgraph Endpoint**
+
+    - The explorer page is configured to use the decentralized gateway endpoint:
+        ```
+        https://gateway.thegraph.com/api/subgraphs/id/HmU5oZZCHNxv7h79G6zJjkUN916uQPXamcMrCTg9YNm6
+        ```
+    - This endpoint requires a valid API key in the `Authorization` header.
+
+3. **Deployed Subgraph**
+
+    - The subgraph is deployed and published here:
+      [Zora Coins Factory Base Mainnet Subgraph on The Graph Explorer](https://thegraph.com/explorer/subgraphs/HmU5oZZCHNxv7h79G6zJjkUN916uQPXamcMrCTg9YNm6?view=Query&chain=arbitrum-one)
+    - You can view its status, schema, and try queries directly in The Graph Explorer UI.
+
+4. **Query Example**
+    - The explorer page runs a sample query to fetch recent `coinCreateds` and `callers`:
+        ```graphql
+        {
+            coinCreateds(first: 5) {
+                id
+                caller {
+                    id
+                }
+                payoutRecipient
+                platformReferrer
+            }
+            callers(first: 5) {
+                id
+                coinsCreated {
+                    id
+                }
+                blockNumber
+                blockTimestamp
+            }
+        }
+        ```
+    - You can customize this query in the code or extend the UI for custom queries.
+
+### UI Improvements
+
+The Subgraph Explorer page features a user-friendly and visually clear interface:
+
+- The endpoint selector is presented in a styled card layout with clear labels.
+- The currently selected endpoint URL is shown in a monospace, copyable code block for easy reference.
+- The query response is displayed in a scrollable, syntax-highlighted code block with improved contrast and padding for readability.
+- Error messages and loading states are visually distinct and easy to spot.
+- The main explorer area is separated with a subtle background and border for clarity.
+
+These improvements make it much easier to read, use, and debug queries within the explorer.
+
+### Troubleshooting
+
+- If you see errors about a missing or malformed API key, ensure your `.env` file is correct and the server has been restarted.
+- If you see `subgraph not found: no allocations`, your subgraph may still be indexing or awaiting allocation on the decentralized network. Check the status in The Graph Explorer.
+
 ## Implementation Guide
 
 ### Setting Up the Web Application
