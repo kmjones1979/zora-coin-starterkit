@@ -1,0 +1,13 @@
+# Query to fetch all coin IDs for client-side counting
+# Note: This is not scalable for a very large number of entities.
+# A better approach for production would be to maintain an aggregate counter in the subgraph.
+query GetAllCoinIdsForCount($first: Int = 1000, $skip: Int = 0) {
+    coinCreateds(
+        first: $first
+        skip: $skip
+        orderBy: blockTimestamp
+        orderDirection: asc
+    ) {
+        id # Only fetch ID for counting
+    }
+}

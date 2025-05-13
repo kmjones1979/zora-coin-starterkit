@@ -1,0 +1,11 @@
+query GetCoinCreationTimeSeries($startTime: BigInt, $first: Int = 1000) {
+    coinCreateds(
+        first: $first
+        orderBy: blockTimestamp
+        orderDirection: asc
+        where: { blockTimestamp_gte: $startTime }
+    ) {
+        id
+        blockTimestamp
+    }
+}

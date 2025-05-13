@@ -27,6 +27,12 @@ export function Header() {
                         >
                             Subgraph Explorer
                         </Link>
+                        <Link
+                            href="/dashboard"
+                            className="text-foreground hover:underline font-medium"
+                        >
+                            Shadcn Dashboard
+                        </Link>
                     </nav>
                 </div>
                 <div className="flex items-center gap-4">

@@ -1,0 +1,15 @@
+query GetCallerInfo($callerId: ID!) {
+    caller(id: $callerId) {
+        id
+        coinsCreated(first: 10, orderBy: blockTimestamp, orderDirection: desc) {
+            id
+            name
+            symbol
+            coin
+            blockTimestamp
+        }
+        blockNumber
+        blockTimestamp
+        transactionHash
+    }
+}

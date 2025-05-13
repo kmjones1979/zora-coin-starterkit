@@ -1,0 +1,11 @@
+# Get coins created since a specific timestamp (for "last 24h" type queries)
+query GetCoinsCreatedInTimeRange($startTime: BigInt!) {
+    coinCreateds(
+        where: { blockTimestamp_gte: $startTime }
+        orderBy: blockTimestamp
+        orderDirection: desc
+        first: 1000
+    ) {
+        id # Only need ID for counting
+    }
+}

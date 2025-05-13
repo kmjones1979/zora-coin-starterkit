@@ -2,6 +2,11 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { gql, request } from "graphql-request";
+import {
+    GetRecentCoinCreatedsDocument,
+    execute,
+} from "../../../../.graphclient";
+import { print } from "graphql/language/printer";
 import { useState, useCallback } from "react";
 import React from "react";
 import Editor from "react-simple-code-editor";
@@ -11,16 +16,28 @@ import "prismjs/themes/prism.css";
 import ReactJson from "react-json-view";
 import { FaCode, FaDatabase } from "react-icons/fa";
 
-const DEFAULT_QUERY = `{
-  coinCreateds(first: 5) {
-    id
-    caller {
-      id
+// Helper function to convert BigInts to strings
+function stringifyBigInts(value: any): any {
+    if (typeof value === "bigint") {
+        return value.toString();
     }
-    payoutRecipient
-    platformReferrer
-  }
-}`;
+    if (Array.isArray(value)) {
+        return value.map(stringifyBigInts);
+    }
+    if (typeof value === "object" && value !== null) {
+        const newObj: { [key: string]: any } = {};
+        for (const key in value) {
+            if (Object.prototype.hasOwnProperty.call(value, key)) {
+                newObj[key] = stringifyBigInts(value[key]);
+            }
+        }
+        return newObj;
+    }
+    return value;
+}
+
+const DEFAULT_QUERY_DOCUMENT = GetRecentCoinCreatedsDocument;
+const DEFAULT_QUERY_STRING = print(DEFAULT_QUERY_DOCUMENT);
 
 const PROD_URL =
     "https://gateway.thegraph.com/api/subgraphs/id/HmU5oZZCHNxv7h79G6zJjkUN916uQPXamcMrCTg9YNm6";
@@ -31,19 +48,70 @@ console.log("API KEY:", process.env.NEXT_PUBLIC_GRAPH_API_KEY);
 
 export default function SubgraphExplorer() {
     const [endpoint, setEndpoint] = useState("dev");
-    const url = endpoint === "prod" ? PROD_URL : DEV_URL;
-    const headers =
-        endpoint === "prod"
-            ? {
-                  Authorization: `Bearer ${process.env.NEXT_PUBLIC_GRAPH_API_KEY}`,
-              }
-            : undefined;
-    const [queryText, setQueryText] = useState(DEFAULT_QUERY);
-    const [submittedQuery, setSubmittedQuery] = useState(DEFAULT_QUERY);
+    const [queryText, setQueryText] = useState(DEFAULT_QUERY_STRING);
+    const [submittedQuery, setSubmittedQuery] = useState(DEFAULT_QUERY_STRING);
 
     const { data, error, isLoading, refetch } = useQuery({
         queryKey: ["subgraph-data", endpoint, submittedQuery],
-        queryFn: async () => await request(url, submittedQuery, {}, headers),
+        queryFn: async () => {
+            const sourceName =
+                endpoint === "prod" ? "zoraCoinProd" : "zoraCoinDev";
+            const context = {
+                sourceName,
+                headers:
+                    endpoint === "prod"
+                        ? {
+                              Authorization: `Bearer ${process.env.NEXT_PUBLIC_GRAPH_API_KEY}`,
+                          }
+                        : {},
+            };
+
+            try {
+                if (submittedQuery === DEFAULT_QUERY_STRING) {
+                    const executionResult = await execute(
+                        DEFAULT_QUERY_DOCUMENT,
+                        {},
+                        context
+                    );
+                    if (
+                        executionResult.errors &&
+                        executionResult.errors.length > 0
+                    ) {
+                        throw new Error(
+                            executionResult.errors
+                                .map((e) => e.message)
+                                .join("\n")
+                        );
+                    }
+                    return executionResult.data
+                        ? stringifyBigInts(executionResult.data)
+                        : null;
+                } else {
+                    const currentUrl = endpoint === "prod" ? PROD_URL : DEV_URL;
+                    const currentHeaders =
+                        endpoint === "prod"
+                            ? {
+                                  Authorization: `Bearer ${process.env.NEXT_PUBLIC_GRAPH_API_KEY}`,
+                              }
+                            : undefined;
+                    const result = await request(
+                        currentUrl,
+                        submittedQuery,
+                        {},
+                        currentHeaders
+                    );
+                    return result ? stringifyBigInts(result) : null;
+                }
+            } catch (e: any) {
+                // Ensure errors are thrown in a way that useQuery can catch them properly
+                // And stringify BigInts in error objects too, if any part of it might be complex
+                throw new Error(
+                    e.message
+                        ? stringifyBigInts(e.message)
+                        : "An unknown error occurred"
+                );
+            }
+        },
     });
 
     const handleRunQuery = useCallback(() => {
@@ -51,7 +119,7 @@ export default function SubgraphExplorer() {
         refetch();
     }, [queryText, refetch]);
 
-    const handleReset = () => setQueryText(DEFAULT_QUERY);
+    const handleReset = () => setQueryText(DEFAULT_QUERY_STRING);
 
     return (
         <div className="container mx-auto px-4 py-8">
@@ -182,9 +250,9 @@ export default function SubgraphExplorer() {
                         </span>
                         <div
                             className="bg-gray-900 border border-gray-700 rounded px-3 py-2 font-mono text-xs text-gray-200 break-all select-all cursor-pointer shadow-sm"
-                            title={url}
+                            title={endpoint === "prod" ? PROD_URL : DEV_URL}
                         >
-                            {url}
+                            {endpoint === "prod" ? PROD_URL : DEV_URL}
                         </div>
                     </div>
                 </div>

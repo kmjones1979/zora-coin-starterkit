@@ -1,0 +1,22 @@
+query GetCoinDetails($coinId: ID!) {
+    coinCreated(id: $coinId) {
+        id
+        name
+        symbol
+        coin
+        uri
+        payoutRecipient
+        platformReferrer
+        currency
+        pool
+        version
+        caller {
+            id
+            blockNumber
+            blockTimestamp
+        }
+        blockNumber
+        blockTimestamp
+        transactionHash
+    }
+}

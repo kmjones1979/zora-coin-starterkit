@@ -1,0 +1,17 @@
+query GetRecentCoinCreateds($first: Int = 5) {
+    coinCreateds(first: $first, orderBy: blockTimestamp, orderDirection: desc) {
+        id
+        name
+        symbol
+        coin
+        uri
+        currency
+        caller {
+            id
+        }
+        blockTimestamp
+        pool
+        payoutRecipient
+        platformReferrer
+    }
+}
