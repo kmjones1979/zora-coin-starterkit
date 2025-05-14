@@ -47,3 +47,24 @@ type Upgraded @entity(immutable: true) {
     blockTimestamp: BigInt!
     transactionHash: Bytes!
 }
+
+# Timeseries entity for individual coin creation events
+type CoinCreationEvent @entity(timeseries: true) {
+    id: Int8! # Auto-incremented ID by graph-node
+    timestamp: Timestamp! # Auto-set to block timestamp by graph-node
+    coin: Bytes! # The address of the created coin
+    caller: Bytes! # The address of the creator
+    currency: Bytes!
+    # Add any other fields from CoinCreated you want to store in raw timeseries data
+    # e.g., name: String!, symbol: String!
+}
+
+# Aggregation entity for coin creation statistics
+type CoinCreationStats
+    @aggregation(intervals: ["hour", "day"], source: "CoinCreationEvent") {
+    id: Int8! # Auto-generated ID based on interval and timestamp
+    timestamp: Timestamp! # Start of the aggregation interval
+    coinCount: BigInt! @aggregate(fn: "count") # Total coins created in the interval
+    # We can add dimensions here if needed, for example, to count coins per caller
+    caller: Bytes! # This would make it stats per caller per interval
+}

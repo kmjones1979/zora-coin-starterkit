@@ -21,6 +21,8 @@ dataSources:
               - Initialized
               - OwnershipTransferred
               - Upgraded
+              - CoinCreationEvent
+              - CoinCreationStats
           abis:
               - name: ZoraFactoryImpl
                 file: ./abis/ZoraFactoryImpl.json

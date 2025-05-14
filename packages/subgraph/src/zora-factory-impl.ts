@@ -10,6 +10,7 @@ import {
     Initialized,
     OwnershipTransferred,
     Upgraded,
+    CoinCreationEvent,
 } from "../generated/schema";
 
 export function handleCoinCreated(event: CoinCreatedEvent): void {
@@ -42,6 +43,13 @@ export function handleCoinCreated(event: CoinCreatedEvent): void {
     entity.transactionHash = event.transaction.hash;
 
     entity.save();
+
+    let tsEvent = new CoinCreationEvent(event.block.timestamp.toI64());
+    tsEvent.coin = event.params.coin;
+    tsEvent.caller = event.params.caller;
+    tsEvent.currency = event.params.currency;
+
+    tsEvent.save();
 }
 
 export function handleInitialized(event: InitializedEvent): void {

@@ -1,13 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
-import {
-    Card,
-    CardContent,
-    CardHeader,
-    CardTitle,
-    CardDescription,
-} from "@/components/ui/card";
+import React from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useQuery } from "@tanstack/react-query";
 import {
     GetAllCoinIdsForCountDocument,
@@ -17,31 +11,10 @@ import {
     GetTopCoinCreatorsDocument,
     execute,
 } from "../../../../.graphclient"; // Corrected path
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from "@/components/ui/table";
-import {
-    LineChart,
-    Line,
-    XAxis,
-    YAxis,
-    CartesianGrid,
-    Tooltip,
-    Legend,
-    ResponsiveContainer,
-    PieChart,
-    Pie,
-    Cell,
-    BarChart,
-    Bar,
-} from "recharts";
-import { Button } from "@/components/ui/button";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import StatCard from "./components/StatCard"; // Import the new component
+import CoinCreationLineChart from "./components/CoinCreationLineChart"; // Import the line chart component
+import TopCreatorsBarChart from "./components/TopCreatorsBarChart"; // Import the bar chart component
+import RecentCoinsTable from "./components/RecentCoinsTable"; // Import the recent coins table
 
 // Helper function to convert BigInts to strings (can be moved to a utils file)
 function stringifyBigInts(value: any): any {
@@ -219,7 +192,10 @@ export default function DashboardPage() {
     } = useQuery({
         queryKey: ["generalRecentCoinActivityForAvg"],
         queryFn: () =>
-            fetchData(GetCoinCreationTimeSeriesDocument, { first: 100 }),
+            fetchData(GetCoinCreationTimeSeriesDocument, {
+                first: 100,
+                startTime: "0",
+            }),
         refetchOnWindowFocus: false,
         retry: 1,
         staleTime: 300000, // 5 minutes
@@ -278,8 +254,6 @@ export default function DashboardPage() {
         lastHourChartRawData?.coinCreateds
     );
 
-    const [expandedCoinId, setExpandedCoinId] = useState<string | null>(null);
-
     const {
         data: topCreatorsRawData,
         isLoading: isLoadingTopCreators,
@@ -307,338 +281,53 @@ export default function DashboardPage() {
                 Coin Activity Dashboard
             </h1>
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-8">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Total Coins Created</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        {isLoadingTotalCoins && (
-                            <p className="text-2xl font-bold">Loading...</p>
-                        )}
-                        {errorTotalCoins && (
-                            <p className="text-red-500">
-                                Error loading total: {errorTotalCoins.message}
-                            </p>
-                        )}
-                        {totalCoinsData && (
-                            <>
-                                <p className="text-2xl font-bold">
-                                    {totalCoinsData.count}
-                                    {totalCoinsData.approximate ? "+" : ""}
-                                </p>
-                                {totalCoinsData.approximate && (
-                                    <p className="text-xs text-gray-400">
-                                        Count limited by query depth ({">"}5000
-                                        skipped).
-                                    </p>
-                                )}
-                            </>
-                        )}
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Avg Coins / Hour (Recent)</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        {isLoadingGeneralRecent && (
-                            <p className="text-2xl font-bold">Loading...</p>
-                        )}
-                        {errorGeneralRecent && (
-                            <p className="text-red-500">Error</p>
-                        )}
-                        {!isLoadingGeneralRecent &&
-                            !errorGeneralRecent &&
-                            generalRecentDataForAvg && (
-                                <p className="text-2xl font-bold">
-                                    {averageCoinsPerHour}
-                                </p>
-                            )}
-                        {!isLoadingGeneralRecent &&
-                            !errorGeneralRecent &&
-                            !generalRecentDataForAvg && (
-                                <p className="text-2xl font-bold">N/A</p>
-                            )}
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Coins Created (Last Hour)</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        {isLoadingCoinsLastHour && (
-                            <p className="text-2xl font-bold">Loading...</p>
-                        )}
-                        {errorCoinsLastHour && (
-                            <p className="text-red-500">Error</p>
-                        )}
-                        {coinsLastHourData && (
-                            <p className="text-2xl font-bold">
-                                {coinsLastHourData.count}
-                            </p>
-                        )}
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Active Callers (Last 7d)</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        {/* Placeholder - requires aggregation/filtering */}
-                        <p className="text-2xl font-bold">N/A</p>
-                    </CardContent>
-                </Card>
+                <StatCard
+                    title="Total Coins Created"
+                    isLoading={isLoadingTotalCoins}
+                    value={totalCoinsData?.count}
+                    error={errorTotalCoins}
+                    isApproximate={totalCoinsData?.approximate}
+                    approximateText="Count limited by query depth (>5000 skipped)."
+                    errorMessage="Error loading total"
+                />
+                <StatCard
+                    title="Avg Coins / Hour (Recent)"
+                    isLoading={isLoadingGeneralRecent}
+                    value={averageCoinsPerHour}
+                    error={errorGeneralRecent}
+                    errorMessage="Error loading average"
+                />
+                <StatCard
+                    title="Coins Created (Last Hour)"
+                    isLoading={isLoadingCoinsLastHour}
+                    value={coinsLastHourData?.count}
+                    error={errorCoinsLastHour}
+                    errorMessage="Error loading last hour count"
+                />
             </div>
 
             <div className="grid gap-6 md:grid-cols-1 mb-8">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>
-                            Coin Creation Activity (Last Hour)
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="h-[400px]">
-                        {isLoadingLastHourChart && <p>Loading chart data...</p>}
-                        {errorLastHourChart && (
-                            <p className="text-red-500">
-                                Error loading chart data.
-                            </p>
-                        )}
-                        {lastHourChartData.length > 0 && (
-                            <ResponsiveContainer width="100%" height="100%">
-                                <LineChart data={lastHourChartData}>
-                                    <CartesianGrid
-                                        strokeDasharray="3 3"
-                                        stroke="#374151"
-                                    />
-                                    <XAxis
-                                        dataKey="minute"
-                                        stroke="#9ca3af"
-                                        interval="preserveStartEnd"
-                                        tickFormatter={(value) =>
-                                            value.endsWith(":00") ||
-                                            value.endsWith(":30")
-                                                ? value
-                                                : ""
-                                        }
-                                    />
-                                    <YAxis
-                                        stroke="#9ca3af"
-                                        allowDecimals={false}
-                                    />
-                                    <Tooltip
-                                        contentStyle={{
-                                            backgroundColor: "#1f2937",
-                                            border: "none",
-                                            borderRadius: "0.5rem",
-                                        }}
-                                        labelStyle={{ color: "#e5e7eb" }}
-                                    />
-                                    <Line
-                                        type="monotone"
-                                        dataKey="count"
-                                        name="Coins Created"
-                                        stroke="#3b82f6"
-                                        strokeWidth={2}
-                                        dot={false}
-                                        activeDot={{ r: 6 }}
-                                    />
-                                </LineChart>
-                            </ResponsiveContainer>
-                        )}
-                        {lastHourChartData.length === 0 &&
-                            !isLoadingLastHourChart &&
-                            !errorLastHourChart && (
-                                <p>No coins created in the last hour.</p>
-                            )}
-                    </CardContent>
-                </Card>
+                <CoinCreationLineChart
+                    data={lastHourChartData}
+                    isLoading={isLoadingLastHourChart}
+                    error={errorLastHourChart}
+                />
             </div>
 
             {/* New row for the Top Coin Creators chart */}
             <div className="grid gap-6 md:grid-cols-1 mb-8">
-                <Card className="col-span-1">
-                    {" "}
-                    {/* Ensure it spans the full width of this new row */}
-                    <CardHeader>
-                        <CardTitle>
-                            Top Coin Creators (Recent 100 Coins)
-                        </CardTitle>
-                        <CardDescription>
-                            Creators with the most coins minted in the last 100
-                            creations.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        {topCreatorsData.length > 0 ? (
-                            <ResponsiveContainer width="100%" height={300}>
-                                <BarChart data={topCreatorsData}>
-                                    <CartesianGrid strokeDasharray="3 3" />
-                                    <XAxis dataKey="name" />
-                                    <YAxis allowDecimals={false} />
-                                    <Tooltip />
-                                    <Legend />
-                                    <Bar
-                                        dataKey="value"
-                                        fill="#82ca9d"
-                                        name="Coins Created"
-                                    />
-                                </BarChart>
-                            </ResponsiveContainer>
-                        ) : (
-                            <p>Loading creator data...</p>
-                        )}
-                    </CardContent>
-                </Card>
+                <TopCreatorsBarChart
+                    data={topCreatorsData}
+                    isLoading={isLoadingTopCreators}
+                    error={errorTopCreators}
+                />
             </div>
 
-            <Card className="col-span-1 lg:col-span-2">
-                <CardHeader>
-                    <CardTitle>Recently Created Coins</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    {isLoadingRecentCoins && <p>Loading recent coins...</p>}
-                    {errorRecentCoins && (
-                        <p className="text-red-500">
-                            Error loading recent coins.
-                        </p>
-                    )}
-                    {recentCoinsData && recentCoinsData.coinCreateds && (
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead className="w-[200px]">
-                                        Name
-                                    </TableHead>
-                                    <TableHead>Symbol</TableHead>
-                                    <TableHead>Currency</TableHead>
-                                    <TableHead className="text-right">
-                                        Created At
-                                    </TableHead>
-                                    <TableHead className="w-[80px] text-center">
-                                        Details
-                                    </TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {recentCoinsData.coinCreateds.map(
-                                    (coin: any) => (
-                                        <React.Fragment key={coin.id}>
-                                            <TableRow className="border-b">
-                                                <TableCell>
-                                                    {coin.name}
-                                                </TableCell>
-                                                <TableCell>
-                                                    {coin.symbol}
-                                                </TableCell>
-                                                <TableCell className="font-mono text-xs">
-                                                    {coin.currency
-                                                        ? `${coin.currency.substring(0, 6)}...${coin.currency.substring(coin.currency.length - 4)}`
-                                                        : "N/A"}
-                                                </TableCell>
-                                                <TableCell className="text-right">
-                                                    {new Date(
-                                                        parseInt(
-                                                            coin.blockTimestamp
-                                                        ) * 1000
-                                                    ).toLocaleTimeString()}
-                                                </TableCell>
-                                                <TableCell className="text-center">
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        onClick={() =>
-                                                            setExpandedCoinId(
-                                                                expandedCoinId ===
-                                                                    coin.id
-                                                                    ? null
-                                                                    : coin.id
-                                                            )
-                                                        }
-                                                    >
-                                                        {expandedCoinId ===
-                                                        coin.id ? (
-                                                            <ChevronUp className="h-4 w-4" />
-                                                        ) : (
-                                                            <ChevronDown className="h-4 w-4" />
-                                                        )}
-                                                    </Button>
-                                                </TableCell>
-                                            </TableRow>
-                                            {expandedCoinId === coin.id && (
-                                                <TableRow>
-                                                    <TableCell
-                                                        colSpan={5}
-                                                        className="p-0"
-                                                    >
-                                                        <div className="p-4 bg-muted/20 text-sm">
-                                                            <p>
-                                                                <strong>
-                                                                    Coin
-                                                                    Address:
-                                                                </strong>{" "}
-                                                                <span className="font-mono text-xs">
-                                                                    {coin.coin}
-                                                                </span>
-                                                            </p>
-                                                            <p>
-                                                                <strong>
-                                                                    Pool
-                                                                    Address:
-                                                                </strong>{" "}
-                                                                <span className="font-mono text-xs">
-                                                                    {coin.pool}
-                                                                </span>
-                                                            </p>
-                                                            <p>
-                                                                <strong>
-                                                                    Payout
-                                                                    Recipient:
-                                                                </strong>{" "}
-                                                                <span className="font-mono text-xs">
-                                                                    {
-                                                                        coin.payoutRecipient
-                                                                    }
-                                                                </span>
-                                                            </p>
-                                                            <p>
-                                                                <strong>
-                                                                    Platform
-                                                                    Referrer:
-                                                                </strong>{" "}
-                                                                <span className="font-mono text-xs">
-                                                                    {coin.platformReferrer ||
-                                                                        "N/A"}
-                                                                </span>
-                                                            </p>
-                                                            <p>
-                                                                <strong>
-                                                                    Metadata
-                                                                    URI:
-                                                                </strong>{" "}
-                                                                <a
-                                                                    href={
-                                                                        coin.uri
-                                                                    }
-                                                                    target="_blank"
-                                                                    rel="noopener noreferrer"
-                                                                    className="text-blue-400 hover:underline break-all"
-                                                                >
-                                                                    {coin.uri}
-                                                                </a>
-                                                            </p>
-                                                        </div>
-                                                    </TableCell>
-                                                </TableRow>
-                                            )}
-                                        </React.Fragment>
-                                    )
-                                )}
-                            </TableBody>
-                        </Table>
-                    )}
-                </CardContent>
-            </Card>
+            <RecentCoinsTable
+                data={recentCoinsData}
+                isLoading={isLoadingRecentCoins}
+                error={errorRecentCoins}
+            />
         </div>
     );
 }
