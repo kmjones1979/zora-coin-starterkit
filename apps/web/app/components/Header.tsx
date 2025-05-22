@@ -33,6 +33,12 @@ export function Header() {
                         >
                             Shadcn Dashboard
                         </Link>
+                        <Link
+                            href="/chat"
+                            className="text-foreground hover:underline font-medium"
+                        >
+                            Chat
+                        </Link>
                     </nav>
                 </div>
                 <div className="flex items-center gap-4">

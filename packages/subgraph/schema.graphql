@@ -3,7 +3,7 @@ type CoinCreated @entity(immutable: true) {
     caller: Caller!
     payoutRecipient: Bytes! # address
     platformReferrer: Bytes! # address
-    currency: Bytes! # address
+    currency: Bytes! @index # address
     uri: String! # string
     name: String! # string
     symbol: String! # string

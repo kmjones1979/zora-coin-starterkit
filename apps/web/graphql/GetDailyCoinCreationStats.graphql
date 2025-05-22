@@ -1,5 +1,5 @@
 query GetDailyCoinCreationStats($startTime: BigInt!) {
-    dailyStats: coinCreationStats(
+    dailyStats: coinCreationStatses(
         interval: "day"
         where: { timestamp_gte: $startTime }
         orderBy: timestamp

@@ -13,8 +13,15 @@
         "graphclient:build": "graphclient build"
     },
     "devDependencies": {
-        "turbo": "latest",
-        "prettier": "^3.0.0"
+        "prettier": "^3.0.0",
+        "turbo": "latest"
     },
-    "packageManager": "npm@10.2.4"
+    "packageManager": "npm@10.2.4",
+    "dependencies": {
+        "@ai-sdk/openai": "^1.3.22",
+        "@coinbase/agentkit": "^0.7.2",
+        "ai": "^4.3.16",
+        "next-auth": "^4.24.11",
+        "react-markdown": "^10.1.0"
+    }
 }

@@ -44,7 +44,7 @@ export function handleCoinCreated(event: CoinCreatedEvent): void {
 
     entity.save();
 
-    let tsEvent = new CoinCreationEvent(event.block.timestamp.toI64());
+    let tsEvent = new CoinCreationEvent(0);
     tsEvent.coin = event.params.coin;
     tsEvent.caller = event.params.caller;
     tsEvent.currency = event.params.currency;
