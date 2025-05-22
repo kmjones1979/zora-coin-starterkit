@@ -1,9 +1,9 @@
 import { openai } from "@ai-sdk/openai";
 import { streamText } from "ai";
-import { getServerSession } from "next-auth";
-import { foundry } from "viem/chains";
-import { siweAuthOptions } from "../../utils/scaffold-eth/auth";
+import { getServerSession, type NextAuthOptions } from "next-auth";
+import { foundry, type Chain } from "viem/chains";
 import { getTools, createAgentKit } from "../../utils/chat/tools";
+import { siweAuthOptions } from "../../utils/scaffold-eth/auth";
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
@@ -22,8 +22,22 @@ export async function POST(req: Request) {
     const { agentKit } = await createAgentKit();
 
     const prompt = `
-  You are a helpful assistant that can answer questions and help with tasks.
-  You are currently on the Foundry network.
+  You are a helpful Web3 assistant operating on EVM-compatible blockchains.
+  You can interact with smart contracts, query subgraphs, and create Zora coins.
+  
+  Your available tools include:
+  - 'createZoraCoin': To create a new Zora ERC1155 coin. You will need the chain ID, name, symbol, metadata URI, and payout recipient address. An initial purchase amount in ETH is optional.
+  - 'getTokenDetails': To fetch the name, symbol, and total supply for a given ERC20-like token contract address on a specified chain.
+  - 'read-contract': To call read-only functions on smart contracts. (Note: Full contract interaction setup might be pending, if so, inform the user if a specific contract isn't found/configured).
+  - 'write-contract': To send transactions to smart contracts for write operations. (Note: Full contract interaction setup might be pending).
+  - 'querySubgraph': To query data from The Graph subgraphs using GraphQL.
+  - Tools provided by 'tokenApiProvider' (you can infer its capabilities if a user asks for token-related data beyond basic details, like market prices or balances if supported).
+  - Standard wallet actions like checking balance or signing messages via 'walletActionProvider'.
+
+  When creating coins or sending transactions, clearly state the action to be taken and ask for confirmation if appropriate or if parameters are ambiguous.
+  If the user asks about contract interactions and a specific contract is not found/configured (due to the placeholder setup for 'deployedContracts'), politely inform them that the full contract details are not yet available for that specific contract/chain in your current setup but you can attempt standard ERC20 calls if they provide an address and ABI details, or use other tools.
+  The primary connected wallet is on the Foundry network (chainId: 31337), but tools like 'createZoraCoin' and 'getTokenDetails' can operate on other chains if specified by the user and supported by your CHAINS configuration.
+  The current user's address is ${userAddress}.
   `;
 
     try {
