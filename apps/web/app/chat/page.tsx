@@ -6,14 +6,37 @@ import ReactMarkdown from "react-markdown";
 import { ChatInput } from "../components/chat/ChatInput";
 import { MessageToolCalls } from "../components/chat/MessageToolCalls";
 import { StatusIndicator } from "../components/chat/StatusIndicator";
+import { Header } from "../components/Header";
+import { useAccount } from "wagmi";
 
 export default function Chat() {
-    const { messages, input, handleInputChange, handleSubmit, status, stop } =
-        useChat({
-            maxSteps: 10,
-        });
+    const { address, isConnected } = useAccount();
+    const {
+        messages,
+        input,
+        handleInputChange,
+        handleSubmit: originalHandleSubmit,
+        status,
+        stop,
+    } = useChat({
+        maxSteps: 10,
+    });
     const messagesContainerRef = useRef<HTMLDivElement>(null);
     const lastMessageCount = useRef(messages.length);
+
+    type OriginalHandleSubmitType = typeof originalHandleSubmit;
+    type ChatRequestOptionsType = Parameters<OriginalHandleSubmitType>[1];
+
+    const handleSubmit = (
+        e?: React.FormEvent<HTMLFormElement>,
+        chatRequestOptions?: ChatRequestOptionsType
+    ) => {
+        if (!isConnected) {
+            console.warn("Attempted to send chat message while not connected.");
+            return;
+        }
+        originalHandleSubmit(e, chatRequestOptions);
+    };
 
     const scrollToBottom = () => {
         if (
@@ -70,37 +93,57 @@ export default function Chat() {
     };
 
     return (
-        <div className="flex flex-col w-full max-w-md mx-auto h-[600px] my-8 relative bg-white dark:bg-zinc-900 rounded-lg shadow-xl">
-            <div
-                ref={messagesContainerRef}
-                className="flex-1 overflow-y-auto px-4"
-            >
-                <div className="space-y-2 py-4">
-                    {messages.map((m) => (
+        <>
+            <Header />
+            <div className="flex flex-col w-full max-w-md mx-auto h-[600px] my-8 relative bg-white dark:bg-zinc-900 rounded-lg shadow-xl">
+                {!isConnected ? (
+                    <div className="flex flex-col items-center justify-center h-full">
+                        <p className="text-lg font-medium">
+                            Please connect your wallet to chat.
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                            The chat assistant requires a connected wallet to
+                            function.
+                        </p>
+                    </div>
+                ) : (
+                    <>
                         <div
-                            key={m.id}
-                            className={`flex ${m.role === "user" ? "justify-end ml-8" : "justify-start mr-8"}`}
+                            ref={messagesContainerRef}
+                            className="flex-1 overflow-y-auto px-4"
                         >
-                            <div
-                                className={`flex flex-col rounded-lg w-fit max-w-[90%] ${
-                                    m.role === "user"
-                                        ? "bg-blue-100 dark:bg-blue-900/30"
-                                        : "bg-zinc-100 dark:bg-zinc-800/50"
-                                }`}
-                            >
-                                {renderMessage(m)}
+                            <div className="space-y-2 py-4">
+                                {messages.map((m) => (
+                                    <div
+                                        key={m.id}
+                                        className={`flex ${m.role === "user" ? "justify-end ml-8" : "justify-start mr-8"}`}
+                                    >
+                                        <div
+                                            className={`flex flex-col rounded-lg w-fit max-w-[90%] ${
+                                                m.role === "user"
+                                                    ? "bg-blue-100 dark:bg-blue-900/30"
+                                                    : "bg-zinc-100 dark:bg-zinc-800/50"
+                                            }`}
+                                        >
+                                            {renderMessage(m)}
+                                        </div>
+                                    </div>
+                                ))}
+                                <StatusIndicator
+                                    status={status}
+                                    onStop={stop}
+                                />
                             </div>
                         </div>
-                    ))}
-                    <StatusIndicator status={status} onStop={stop} />
-                </div>
+                        <ChatInput
+                            input={input}
+                            status={status}
+                            onSubmit={handleSubmit}
+                            onChange={handleInputChange}
+                        />
+                    </>
+                )}
             </div>
-            <ChatInput
-                input={input}
-                status={status}
-                onSubmit={handleSubmit}
-                onChange={handleInputChange}
-            />
-        </div>
+        </>
     );
 }
