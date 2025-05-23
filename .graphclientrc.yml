@@ -1,0 +1,14 @@
+sources:
+    - name: zoraCoinProd
+      handler:
+          graphql:
+              endpoint: https://gateway.thegraph.com/api/subgraphs/id/HmU5oZZCHNxv7h79G6zJjkUN916uQPXamcMrCTg9YNm6
+              headers:
+                  Authorization: "Bearer ${NEXT_PUBLIC_GRAPH_API_KEY}"
+# sources:
+#     - name: zoraCoinDev
+#       handler:
+#           graphql:
+#               endpoint: https://api.studio.thegraph.com/query/57382/zora-coins-factory-base-mainnet/version/latest
+documents:
+    - ./apps/web/graphql/**/*.graphql
