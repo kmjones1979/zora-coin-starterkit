@@ -8,9 +8,11 @@ import { MessageToolCalls } from "../components/chat/MessageToolCalls";
 import { StatusIndicator } from "../components/chat/StatusIndicator";
 import { Header } from "../components/Header";
 import { useAccount } from "wagmi";
+import { useSession } from "next-auth/react";
 
 export default function Chat() {
     const { address, isConnected } = useAccount();
+    const { data: session, status: sessionStatus } = useSession();
     const {
         messages,
         input,
@@ -25,115 +27,131 @@ export default function Chat() {
     const lastMessageCount = useRef(messages.length);
 
     type OriginalHandleSubmitType = typeof originalHandleSubmit;
-    type ChatRequestOptionsType = Parameters<OriginalHandleSubmitType>[1];
 
-    const handleSubmit = (
-        e?: React.FormEvent<HTMLFormElement>,
-        chatRequestOptions?: ChatRequestOptionsType
-    ) => {
-        if (!isConnected) {
-            console.warn("Attempted to send chat message while not connected.");
+    const handleSubmit: OriginalHandleSubmitType = (e, options) => {
+        e.preventDefault();
+        if (!session) {
+            alert("Please connect your wallet and sign in to use the chat.");
             return;
         }
-        originalHandleSubmit(e, chatRequestOptions);
+        originalHandleSubmit(e, options);
     };
 
-    const scrollToBottom = () => {
+    useEffect(() => {
         if (
             messages.length > lastMessageCount.current &&
             messagesContainerRef.current
         ) {
-            const container = messagesContainerRef.current;
-            container.scrollTop = container.scrollHeight;
+            messagesContainerRef.current.scrollTop =
+                messagesContainerRef.current.scrollHeight;
             lastMessageCount.current = messages.length;
         }
-    };
-
-    useEffect(() => {
-        scrollToBottom();
     }, [messages]);
 
-    const renderMessage = (m: any) => {
-        if (!m.parts) {
-            return <ReactMarkdown>{m.content}</ReactMarkdown>;
+    // Show authentication status
+    const renderAuthStatus = () => {
+        if (!isConnected) {
+            return (
+                <div className="text-center p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+                    <p className="text-amber-800 dark:text-amber-200">
+                        Please connect your wallet to use the chat.
+                    </p>
+                </div>
+            );
         }
 
-        const textParts = m.parts.filter((p: any) => p.type === "text");
-        const toolParts = m.parts.filter(
-            (p: any) => p.type === "tool-invocation"
-        );
+        if (sessionStatus === "loading") {
+            return (
+                <div className="text-center p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                    <p className="text-blue-800 dark:text-blue-200">
+                        Checking authentication status...
+                    </p>
+                </div>
+            );
+        }
 
-        return (
-            <>
-                {textParts.map((part: any, index: number) => (
-                    <div
-                        key={`text-${index}`}
-                        className="mx-4 break-words whitespace-pre-wrap"
-                    >
-                        <ReactMarkdown
-                            components={{
-                                code: ({ ...props }) => (
-                                    <code
-                                        className="break-all font-mono text-sm"
-                                        {...props}
-                                    />
-                                ),
-                                p: ({ ...props }) => (
-                                    <p className="break-words" {...props} />
-                                ),
-                            }}
-                        >
-                            {part.text}
-                        </ReactMarkdown>
-                    </div>
-                ))}
-                <MessageToolCalls toolParts={toolParts} messageId={m.id} />
-            </>
-        );
+        if (!session) {
+            return (
+                <div className="text-center p-4 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg">
+                    <p className="text-orange-800 dark:text-orange-200">
+                        Wallet connected! Please click "Sign In" in the header
+                        to authenticate and use the chat.
+                    </p>
+                </div>
+            );
+        }
+
+        return null;
     };
 
     return (
-        <>
+        <div className="min-h-screen bg-background">
             <Header />
-            <div className="flex flex-col w-full max-w-md mx-auto h-[600px] my-8 relative bg-white dark:bg-zinc-900 rounded-lg shadow-xl">
-                {!isConnected ? (
-                    <div className="flex flex-col items-center justify-center h-full">
-                        <p className="text-lg font-medium">
-                            Please connect your wallet to chat.
-                        </p>
+            <div className="container mx-auto px-4 py-8 max-w-4xl">
+                <div className="bg-card border rounded-lg shadow-sm h-[calc(100vh-12rem)] flex flex-col">
+                    <div className="border-b p-4">
+                        <h1 className="text-xl font-semibold">
+                            AI Chat Assistant
+                        </h1>
                         <p className="text-sm text-muted-foreground">
-                            The chat assistant requires a connected wallet to
-                            function.
+                            Ask questions about Web3, create Zora coins, or
+                            interact with smart contracts.
                         </p>
                     </div>
-                ) : (
-                    <>
-                        <div
-                            ref={messagesContainerRef}
-                            className="flex-1 overflow-y-auto px-4"
-                        >
-                            <div className="space-y-2 py-4">
-                                {messages.map((m) => (
-                                    <div
-                                        key={m.id}
-                                        className={`flex ${m.role === "user" ? "justify-end ml-8" : "justify-start mr-8"}`}
-                                    >
-                                        <div
-                                            className={`flex flex-col rounded-lg w-fit max-w-[90%] ${
-                                                m.role === "user"
-                                                    ? "bg-blue-100 dark:bg-blue-900/30"
-                                                    : "bg-zinc-100 dark:bg-zinc-800/50"
-                                            }`}
-                                        >
-                                            {renderMessage(m)}
-                                        </div>
-                                    </div>
-                                ))}
-                                <StatusIndicator
-                                    status={status}
-                                    onStop={stop}
-                                />
+
+                    {renderAuthStatus()}
+
+                    <div
+                        ref={messagesContainerRef}
+                        className="flex-1 overflow-y-auto p-4 space-y-4"
+                    >
+                        {messages.length === 0 ? (
+                            <div className="text-center text-muted-foreground py-8">
+                                <p>
+                                    Welcome! Start a conversation to get help
+                                    with Web3 tasks.
+                                </p>
                             </div>
+                        ) : (
+                            messages.map((message) => (
+                                <div
+                                    key={message.id}
+                                    className={`flex ${
+                                        message.role === "user"
+                                            ? "justify-end"
+                                            : "justify-start"
+                                    }`}
+                                >
+                                    <div
+                                        className={`max-w-[80%] rounded-lg px-4 py-2 ${
+                                            message.role === "user"
+                                                ? "bg-primary text-primary-foreground"
+                                                : "bg-muted"
+                                        }`}
+                                    >
+                                        {message.role === "assistant" &&
+                                            message.toolInvocations && (
+                                                <MessageToolCalls
+                                                    toolParts={message.toolInvocations.map(
+                                                        (ti) => ({
+                                                            toolInvocation: ti,
+                                                        })
+                                                    )}
+                                                    messageId={message.id}
+                                                />
+                                            )}
+                                        <ReactMarkdown>
+                                            {message.content}
+                                        </ReactMarkdown>
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </div>
+
+                    <div className="border-t p-4">
+                        <div className="flex items-center gap-2 mb-2">
+                            <StatusIndicator status={status} onStop={stop} />
                         </div>
                         <ChatInput
                             input={input}
@@ -141,9 +159,9 @@ export default function Chat() {
                             onSubmit={handleSubmit}
                             onChange={handleInputChange}
                         />
-                    </>
-                )}
+                    </div>
+                </div>
             </div>
-        </>
+        </div>
     );
 }

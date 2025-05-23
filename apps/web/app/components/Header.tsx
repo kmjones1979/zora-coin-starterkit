@@ -2,6 +2,7 @@
 
 import { ChainSelector } from "./ChainSelector";
 import { WalletConnect } from "./WalletConnect";
+import { SiweAuth } from "./SiweAuth";
 import { DebugToggle } from "./DebugToggle";
 import { ThemeToggle } from "./ThemeToggle";
 import Link from "next/link";
@@ -41,11 +42,12 @@ export function Header() {
                         </Link>
                     </nav>
                 </div>
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
                     <ChainSelector />
                     <WalletConnect />
-                    <ThemeToggle />
+                    <SiweAuth />
                     <DebugToggle />
+                    <ThemeToggle />
                 </div>
             </div>
         </header>

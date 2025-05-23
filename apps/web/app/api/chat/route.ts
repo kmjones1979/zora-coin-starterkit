@@ -1,7 +1,7 @@
 import { openai } from "@ai-sdk/openai";
 import { streamText } from "ai";
 import { getServerSession, type NextAuthOptions } from "next-auth";
-import { foundry, type Chain } from "viem/chains";
+import { baseSepolia, foundry, type Chain } from "viem/chains";
 import { getTools, createAgentKit } from "../../utils/chat/tools";
 import { siweAuthOptions } from "../../utils/scaffold-eth/auth";
 
@@ -10,7 +10,7 @@ export const maxDuration = 30;
 
 export async function POST(req: Request) {
     const session = (await getServerSession(
-        siweAuthOptions({ chain: foundry })
+        siweAuthOptions({ chain: baseSepolia })
     )) as any;
     const userAddress = session?.user?.address;
 
