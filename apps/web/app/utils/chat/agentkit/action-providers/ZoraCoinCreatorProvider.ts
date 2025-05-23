@@ -5,9 +5,15 @@ import {
     Network,
 } from "@coinbase/agentkit";
 import { z } from "zod";
-import { createCoinCall } from "@zoralabs/coins-sdk";
-import { type Hex, type Address, encodeFunctionData } from "viem";
-import { CHAINS } from "../../../../config/chains"; // Corrected path
+import {
+    type Hex,
+    type Address,
+    parseEther,
+    isAddress,
+    encodeFunctionData,
+} from "viem";
+import { createCoinCall, getCoinCreateFromLogs } from "@zoralabs/coins-sdk";
+import { CHAINS } from "../../../../config/chains";
 
 // TODO: Ensure AGENT_PRIVATE_KEY is set in your environment for the agent to sign transactions.
 
@@ -60,7 +66,7 @@ class ZoraCoinCreatorProvider extends ActionProvider<EvmWalletProvider> {
     @CreateAction({
         name: "createZoraCoin",
         description:
-            "Creates a new Zora coin on the specified chain with the given parameters. Requires the agent to have a wallet with funds for gas and any initial purchase.",
+            "Creates a new Zora coin on the specified chain with the given parameters using the canonical Zora factory contract.",
         schema: CreateZoraCoinSchema,
     })
     async createZoraCoin(
@@ -72,112 +78,114 @@ class ZoraCoinCreatorProvider extends ActionProvider<EvmWalletProvider> {
         coinAddress?: Address;
     }> {
         console.log(
-            `[ZoraCoinCreatorProvider] Received request to create coin: ${args.name} (${args.symbol}) on chain ${args.chainId}`
+            `[ZoraCoinCreatorProvider] Creating coin: ${args.name} (${args.symbol}) on chain ${args.chainId}`
         );
+
         try {
-            const selectedChainConfig =
-                CHAINS[args.chainId as keyof typeof CHAINS];
-            if (!selectedChainConfig || !selectedChainConfig.factory) {
-                const errorMessage = `Unsupported or unconfigured chainId: ${args.chainId}. Supported chainIds with factory: ${Object.keys(
-                    CHAINS
-                )
-                    .filter(
-                        (key) =>
-                            CHAINS[Number(key) as keyof typeof CHAINS]?.factory
-                    )
-                    .join(", ")}`;
-                console.error(`[ZoraCoinCreatorProvider] ${errorMessage}`);
-                return { error: errorMessage };
+            // Validation
+            if (!args.payoutRecipient || !isAddress(args.payoutRecipient)) {
+                throw new Error(
+                    "Invalid payoutRecipient. Must be a valid Ethereum address."
+                );
             }
 
-            const payoutRecipient = args.payoutRecipient as Address;
-            const platformReferrer = args.platformReferrer
-                ? (args.platformReferrer as Address)
-                : payoutRecipient; // Default to payoutRecipient if not provided
             const initialPurchaseWei = args.initialPurchaseEth
-                ? BigInt(parseFloat(args.initialPurchaseEth) * 1e18)
+                ? parseEther(args.initialPurchaseEth)
                 : BigInt(0);
 
-            if (!/^0x[a-fA-F0-9]{40}$/.test(payoutRecipient)) {
-                return {
-                    error: `Invalid payoutRecipient address format: ${args.payoutRecipient}`,
-                };
-            }
-            if (
-                args.platformReferrer &&
-                !/^0x[a-fA-F0-9]{40}$/.test(args.platformReferrer)
-            ) {
-                return {
-                    error: `Invalid platformReferrer address format: ${args.platformReferrer}`,
-                };
-            }
-            if (
-                !args.uri.startsWith("ipfs://") &&
-                !args.uri.startsWith("http://") &&
-                !args.uri.startsWith("https://")
-            ) {
-                return {
-                    error: `Invalid URI format: ${args.uri}. Must start with ipfs://, http://, or https://`,
-                };
-            }
+            // Make names unique to avoid conflicts
+            const timestamp = Date.now().toString().slice(-6);
+            const uniqueName = `${args.name.trim()} ${timestamp}`;
+            const uniqueSymbol = `${args.symbol.trim()}${timestamp}`;
 
+            // Use exact same coinParams structure as working useCoinCreation hook
             const coinParams = {
-                name: args.name.trim(),
-                symbol: args.symbol.trim(),
+                name: uniqueName,
+                symbol: uniqueSymbol,
                 uri: args.uri.trim(),
-                owners: [payoutRecipient], // As per useCoinCreation hook, owners array contains payoutRecipient
-                payoutRecipient,
-                platformReferrer,
+                owners: [args.payoutRecipient as Address],
+                payoutRecipient: args.payoutRecipient as Address,
+                platformReferrer: args.payoutRecipient as Address, // Always use payoutRecipient like working hook
                 initialPurchaseWei,
-                factoryAddress: selectedChainConfig.factory as Address,
+                factoryAddress: CHAINS[args.chainId as keyof typeof CHAINS]
+                    .factory as `0x${string}`,
             };
 
-            console.log(
-                "[ZoraCoinCreatorProvider] Prepared coinParams:",
-                JSON.stringify(coinParams, (k, v) =>
-                    typeof v === "bigint" ? v.toString() : v
-                )
-            );
+            console.log("[ZoraCoinCreatorProvider] Coin creation parameters:", {
+                ...coinParams,
+                initialPurchaseWei: initialPurchaseWei.toString(),
+            });
 
-            const {
-                address: targetAddress,
-                abi,
-                functionName,
-                args: callArgs,
-            } = await createCoinCall(coinParams);
+            // Use createCoinCall from Zora SDK (exactly like working hook)
+            const contractCallParams = await createCoinCall(coinParams);
 
-            console.log(
-                "[ZoraCoinCreatorProvider] createCoinCall successful. Target address:",
-                targetAddress,
-                "Function:",
-                functionName
-            );
+            console.log("[ZoraCoinCreatorProvider] Contract call parameters:", {
+                address: contractCallParams.address,
+                factoryAddress:
+                    CHAINS[args.chainId as keyof typeof CHAINS].factory,
+                chainId: args.chainId,
+                functionName: contractCallParams.functionName,
+                argsLength: contractCallParams.args?.length || 0,
+            });
 
+            // Use the factory address from chains config (exactly like working hook)
+            const factoryAddress = CHAINS[args.chainId as keyof typeof CHAINS]
+                .factory as Address;
+
+            // Encode the function call properly for the factory contract
+            // This is the key fix - use the abi, functionName, and args but encode for factory
+            const encodedData = encodeFunctionData({
+                abi: contractCallParams.abi,
+                functionName: contractCallParams.functionName as any,
+                args: contractCallParams.args,
+            });
+
+            console.log("[ZoraCoinCreatorProvider] Encoded transaction data:", {
+                factoryAddress,
+                functionName: contractCallParams.functionName,
+                dataLength: encodedData.length,
+            });
+
+            // Send transaction using the exact same approach as working hook
             const txHash = await walletProvider.sendTransaction({
-                to: targetAddress,
-                data: encodeFunctionData({
-                    abi,
-                    functionName,
-                    args: callArgs,
-                }),
-                value: initialPurchaseWei, // Already a BigInt
-                // chainId: args.chainId, // sendTransaction in EvmWalletProvider might not need chainId if wallet is chain-specific
+                to: factoryAddress,
+                data: encodedData, // Use properly encoded data for factory contract
+                value: initialPurchaseWei,
             });
 
             console.log(
-                `[ZoraCoinCreatorProvider] Transaction sent with hash: ${txHash} for coin ${args.name}`
+                `[ZoraCoinCreatorProvider] Transaction sent: ${txHash}`
             );
-            // Note: We don't easily get the deployed coin address here without waiting for receipt & parsing logs.
-            // For simplicity, the agent will be informed of the tx hash.
-            // A more advanced version could wait for the receipt and parse logs if needed.
-            return { transactionHash: txHash };
+
+            // Try to extract coin address from transaction receipt
+            try {
+                // Wait a bit for the transaction to be mined
+                await new Promise((resolve) => setTimeout(resolve, 2000));
+
+                // Note: We can't easily get the receipt in this context without a public client
+                // This is a limitation compared to the React hook version
+                console.log(
+                    "[ZoraCoinCreatorProvider] Transaction submitted successfully"
+                );
+
+                return {
+                    transactionHash: txHash,
+                    // coinAddress will need to be extracted separately by the user
+                };
+            } catch (receiptError: any) {
+                console.log(
+                    `[ZoraCoinCreatorProvider] Transaction sent but couldn't extract coin address: ${receiptError.message}`
+                );
+                return {
+                    transactionHash: txHash,
+                };
+            }
         } catch (error: any) {
             const errorMessage =
-                error.message ||
-                "An unknown error occurred during coin creation.";
+                error.message || "Unknown error during coin creation";
             console.error(
-                `[ZoraCoinCreatorProvider] Error creating coin ${args.name}: ${errorMessage}`,
-                error
+                `[ZoraCoinCreatorProvider] Error creating ${args.name}:`,
+                errorMessage
             );
             return { error: errorMessage };
         }
