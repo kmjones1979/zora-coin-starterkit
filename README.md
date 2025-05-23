@@ -1,6 +1,16 @@
 # Zora Coin Starter Kit
 
-A comprehensive starter kit for building applications with Zora Protocol's Coin Factory, featuring a Next.js web application and a Subgraph for on-chain data indexing.
+A comprehensive starter kit for building applications with Zora Protocol's Coin Factory, featuring a Next.js web application with AI-powered chat functionality and a Subgraph for on-chain data indexing.
+
+## 🚀 Key Features
+
+- **AI-Powered Chat Interface**: Interactive AI assistant powered by GPT-4 with blockchain-specific tools
+- **Zora Coin Creation**: Seamless coin creation through chat commands or UI
+- **Smart Contract Interaction**: Direct contract calls through AI agent
+- **Subgraph Integration**: On-chain data indexing and querying capabilities
+- **Multi-Chain Support**: Base and Base Sepolia networks
+- **Authentication**: Wallet-based authentication with SIWE (Sign-In with Ethereum)
+- **Modern UI**: Built with Next.js 15, React 19, TailwindCSS, and Radix UI
 
 ## Project Structure
 
@@ -9,14 +19,28 @@ zora-coin-starterkit/
 ├── apps/
 │   └── web/                    # Next.js web application
 │       ├── app/
-│       │   ├── components/     # Reusable UI components
-│       │   │   ├── ui/         # Shadcn UI components
-│       │   │   └── ...         # Custom components
-│       │   ├── config/         # Configuration files
+│       │   ├── api/
+│       │   │   └── chat/       # AI Chat API endpoints
+│       │   ├── chat/           # Chat interface pages
+│       │   │   ├── page.tsx    # Main chat interface
+│       │   │   ├── _config/    # Chat configuration
+│       │   │   ├── _hooks/     # Chat-specific hooks
+│       │   │   ├── _types/     # TypeScript types
+│       │   │   └── _utils/     # Chat utilities
+│       │   ├── components/
+│       │   │   ├── chat/       # Chat UI components
+│       │   │   └── ui/         # Shadcn UI components
+│       │   ├── subgraph-explorer/ # Subgraph query interface
+│       │   ├── utils/
+│       │   │   └── chat/
+│       │   │       ├── tools.ts          # AI tool configuration
+│       │   │       └── agentkit/         # AgentKit integration
+│       │   │           ├── action-providers/ # Custom AI action providers
+│       │   │           └── framework-extensions/ # AI SDK integration
+│       │   ├── config/         # App configuration
 │       │   ├── contexts/       # React contexts
 │       │   ├── hooks/          # Custom React hooks
-│       │   ├── lib/            # Utility functions
-│       │   └── ...             # Next.js app files
+│       │   └── lib/            # Utility functions
 │       └── public/             # Static assets
 └── packages/
     └── subgraph/              # The Graph subgraph
@@ -25,305 +49,789 @@ zora-coin-starterkit/
         └── subgraph.yaml      # Subgraph configuration
 ```
 
-## Features
-
-### Web Application (`apps/web`)
-
-#### Components
-
-- **UI Components** (`app/components/ui/`)
-    - `button.tsx`: Customizable button component with variants
-    - `card.tsx`: Card component for content display
-    - `checkbox.tsx`: Checkbox input component
-    - `dropdown-menu.tsx`: Dropdown menu with keyboard navigation
-    - `input.tsx`: Form input component
-    - `label.tsx`: Form label component
-    - `select.tsx`: Select dropdown component
-
-#### Configuration
-
-- **Chain Configuration** (`app/config/chains.ts`)
-
-    ```typescript
-    export const CHAINS = {
-        base: {
-            id: 8453,
-            name: "Base",
-            // ... other chain configurations
-        },
-    };
-    ```
-
-- **Contract ABIs** (`app/config/abis.ts`)
-    ```typescript
-    export const COIN_FACTORY_ABI = [
-        // ... ABI definitions
-    ];
-    ```
-
-#### Hooks
-
-- **useCoinCreation** (`app/hooks/useCoinCreation.ts`)
-
-    ```typescript
-    const { createCoin, isLoading, error } = useCoinCreation({
-        name: "My Coin",
-        symbol: "MC",
-        // ... other parameters
-    });
-    ```
-
-- **useTokenDetails** (`app/hooks/useTokenDetails.ts`)
-    ```typescript
-    const { tokenDetails, loading } = useTokenDetails(tokenAddress);
-    ```
-
-#### Contexts
-
-- **Theme Context** (`app/contexts/ThemeContext.tsx`)
-
-    ```typescript
-    const { theme, setTheme } = useTheme();
-    ```
-
-- **Debug Context** (`app/contexts/DebugContext.tsx`)
-    ```typescript
-    const { isDebug, setIsDebug } = useDebug();
-    ```
-
-### Subgraph (`packages/subgraph`)
-
-The subgraph indexes on-chain data from the Zora Protocol's Coin Factory, providing efficient querying of coin data.
-
-#### Schema
-
-```graphql
-type Coin @entity {
-    id: ID!
-    name: String!
-    symbol: String!
-    uri: String!
-    owner: Bytes!
-    createdAt: BigInt!
-    # ... other fields
-}
-```
-
-#### Mappings
-
-```typescript
-export function handleCoinCreated(event: CoinCreated): void {
-    let coin = new Coin(event.params.coin.toHexString());
-    coin.name = event.params.name;
-    coin.symbol = event.params.symbol;
-    // ... other mappings
-}
-```
-
-#### Queries
-
-```
-{
-  callers(first: 5, orderBy: blockTimestamp, orderDirection: desc) {
-    id
-    coinsCreated {
-      id
-      blockNumber
-      blockTimestamp
-      coin
-      currency
-      name
-      payoutRecipient
-      platformReferrer
-      pool
-      symbol
-      transactionHash
-      uri
-      version
-    }
-    blockNumber
-    blockTimestamp
-    transactionHash
-  }
-}
-```
-
-## Subgraph Explorer Page
+## 🤖 AI Chat Interface
 
 ### Overview
 
-The web application now includes a **Subgraph Explorer** page, accessible from the main navigation. This page allows you to query and explore data from your deployed subgraph on The Graph's decentralized network.
+The AI Chat Interface is a conversational AI assistant that can interact with Web3 protocols, create Zora coins, query subgraphs, and perform various blockchain operations through natural language commands.
 
-- **Purpose:**
-    - Query and visualize data indexed by your subgraph.
-    - Useful for debugging, analytics, and exploring on-chain data indexed by your deployment.
-- **Location:**
-    - Accessible at `/subgraph-explorer` in the web app.
-    - Linked in the main navigation as "Subgraph Explorer".
+### Key Features
 
-### Usage
+- **GPT-4 Powered**: Uses OpenAI's GPT-4 Turbo for intelligent responses
+- **Blockchain-Aware**: Understands Web3 concepts and can execute blockchain operations
+- **Multi-Tool Support**: Integrates multiple action providers for diverse functionality
+- **Real-time Interaction**: Streaming responses with tool execution visualization
+- **Wallet Integration**: Requires wallet connection and SIWE authentication
 
-1. **API Key Requirement**
+### Chat Implementation
 
-    - To query The Graph's decentralized gateway, you must provide an API key.
-    - Add the following to your `.env` file in `apps/web/`:
-        ```
-        NEXT_PUBLIC_GRAPH_API_KEY=your_api_key_here
-        ```
-    - You can obtain an API key from The Graph's dashboard.
-    - **Restart your dev server** after editing the `.env` file.
+#### Main Chat Interface (`apps/web/app/chat/page.tsx`)
 
-2. **Subgraph Endpoint**
+```typescript
+import { useChat } from "@ai-sdk/react";
+import { useAccount, useChainId } from "wagmi";
+import { useSession } from "next-auth/react";
 
-    - The explorer page is configured to use the decentralized gateway endpoint:
-        ```
-        https://gateway.thegraph.com/api/subgraphs/id/HmU5oZZCHNxv7h79G6zJjkUN916uQPXamcMrCTg9YNm6
-        ```
-    - This endpoint requires a valid API key in the `Authorization` header.
+export default function Chat() {
+    const { address, isConnected } = useAccount();
+    const { data: session } = useSession();
+    const chainId = useChainId();
 
-3. **Deployed Subgraph**
+    const {
+        messages,
+        input,
+        handleInputChange,
+        handleSubmit: originalHandleSubmit,
+        status,
+        stop,
+    } = useChat({
+        maxSteps: 10,
+        body: { chainId },
+    });
 
-    - The subgraph is deployed and published here:
-      [Zora Coins Factory Base Mainnet Subgraph on The Graph Explorer](https://thegraph.com/explorer/subgraphs/HmU5oZZCHNxv7h79G6zJjkUN916uQPXamcMrCTg9YNm6?view=Query&chain=arbitrum-one)
-    - You can view its status, schema, and try queries directly in The Graph Explorer UI.
+    // Authentication check
+    const handleSubmit = (e, options) => {
+        e.preventDefault();
+        if (!session) {
+            alert("Please connect your wallet and sign in to use the chat.");
+            return;
+        }
+        originalHandleSubmit(e, options);
+    };
 
-4. **Query Example**
-    - The explorer page runs a sample query to fetch recent `coinCreateds` and `callers`:
-        ```graphql
-        {
+    return (
+        <div className="min-h-screen bg-background">
+            {/* Chat interface with authentication checks */}
+            {renderAuthStatus()}
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                {messages.map((message) => (
+                    <div key={message.id}>
+                        {/* Message rendering with tool call visualization */}
+                        {message.role === "assistant" && message.toolInvocations && (
+                            <MessageToolCalls
+                                toolParts={message.toolInvocations}
+                                messageId={message.id}
+                            />
+                        )}
+                        <ReactMarkdown>{message.content}</ReactMarkdown>
+                    </div>
+                ))}
+            </div>
+            <ChatInput
+                input={input}
+                status={status}
+                onSubmit={handleSubmit}
+                onChange={handleInputChange}
+            />
+        </div>
+    );
+}
+```
+
+#### Chat API Route (`apps/web/app/api/chat/route.ts`)
+
+```typescript
+import { openai } from "@ai-sdk/openai";
+import { streamText } from "ai";
+import { getTools, createAgentKit } from "../../utils/chat/tools";
+
+export async function POST(req: Request) {
+    const session = await getServerSession(siweAuthOptions());
+    const userAddress = session?.user?.address;
+
+    if (!userAddress) {
+        return new Response("Unauthorized", { status: 401 });
+    }
+
+    const { messages, chainId } = await req.json();
+    const selectedChainId = chainId || baseSepolia.id;
+    const selectedChain = CHAINS[selectedChainId];
+
+    // Create AgentKit instance with wallet and action providers
+    const { agentKit } = await createAgentKit(selectedChainId);
+
+    const prompt = `
+    You are a helpful Web3 assistant operating on ${selectedChain.name}.
+    Available tools:
+    - 'createZoraCoin': Create new Zora ERC1155 coins
+    - 'getTokenDetails': Fetch token information
+    - 'querySubgraph': Query The Graph subgraphs
+    - 'read-contract'/'write-contract': Smart contract interactions
+    - Wallet actions and token API operations
+    
+    Current user address: ${userAddress}
+    Current chain: ${selectedChain.name} (${selectedChainId})
+    `;
+
+    const result = await streamText({
+        model: openai("gpt-4-turbo-preview"),
+        system: prompt,
+        messages,
+        tools: getTools(agentKit),
+    });
+
+    return result.toDataStreamResponse();
+}
+```
+
+### Available AI Tools
+
+#### 1. Zora Coin Creator (`ZoraCoinCreatorProvider.ts`)
+
+Creates new Zora coins through natural language commands.
+
+```typescript
+// Example usage in chat:
+// "Create a coin called 'My Token' with symbol 'MTK' using this metadata URI: ipfs://..."
+
+const coinParams = {
+    chainId: 8453, // Base mainnet
+    name: "My Awesome Coin",
+    symbol: "MAC",
+    uri: "ipfs://QmYourMetadataHash",
+    payoutRecipient: "0x...",
+    initialPurchaseEth: "0.01", // Optional initial purchase
+};
+```
+
+**Key Features:**
+
+- Automatic unique naming with timestamps
+- Proper parameter validation
+- Support for initial purchases
+- Integration with Zora SDK's `createCoinCall`
+
+#### 2. Token Details Provider (`TokenDetailsProvider.ts`)
+
+Fetches token information from any ERC20/ERC1155 contract.
+
+```typescript
+// Example usage:
+// "Get details for token at address 0x..."
+
+const tokenDetails = await getTokenDetails({
+    chainId: 8453,
+    contractAddress: "0x...",
+});
+// Returns: { name, symbol, totalSupply, decimals }
+```
+
+#### 3. Contract Interactor (`contract-interactor.ts`)
+
+Enables read/write operations on smart contracts.
+
+```typescript
+// Example configuration:
+const deployedContracts = {
+    8453: {  // Base mainnet
+        ZoraFactory: {
+            address: "0x777777751622c0d3258f214F9DF38E35BF45baF3",
+            abi: [...], // Full ZoraFactory ABI
+        },
+    },
+    84532: { // Base Sepolia
+        ZoraFactory: {
+            address: "0x777777751622c0d3258f214F9DF38E35BF45baF3",
+            abi: [...],
+        },
+    },
+};
+```
+
+#### 4. Graph Querier (`graph-querier.ts`)
+
+Queries The Graph subgraphs with GraphQL.
+
+```typescript
+// Example usage:
+// "Query the subgraph for recent coin creations"
+
+const SUBGRAPH_ENDPOINTS = {
+    UNISWAP_V3: () =>
+        `https://gateway.thegraph.com/api/${apiKey}/subgraphs/id/${id}`,
+    AAVE_V3: () =>
+        `https://gateway.thegraph.com/api/${apiKey}/subgraphs/id/${id}`,
+};
+
+await querySubgraph({
+    endpoint: SUBGRAPH_ENDPOINTS.UNISWAP_V3(),
+    query: `
+        query {
             coinCreateds(first: 5) {
                 id
+                name
+                symbol
+                coin
                 caller {
                     id
                 }
-                payoutRecipient
-                platformReferrer
-            }
-            callers(first: 5) {
-                id
-                coinsCreated {
-                    id
-                }
-                blockNumber
-                blockTimestamp
             }
         }
-        ```
-    - You can customize this query in the code or extend the UI for custom queries.
+    `,
+});
+```
 
-### UI Improvements
+#### 5. Token API Provider (`token-api-provider.ts`)
 
-The Subgraph Explorer page features a user-friendly and visually clear interface:
+Provides comprehensive token data including prices, balances, and market information.
 
-- The endpoint selector is presented in a styled card layout with clear labels.
-- The currently selected endpoint URL is shown in a monospace, copyable code block for easy reference.
-- The query response is displayed in a scrollable, syntax-highlighted code block with improved contrast and padding for readability.
-- Error messages and loading states are visually distinct and easy to spot.
-- The main explorer area is separated with a subtle background and border for clarity.
+### AgentKit Integration
 
-These improvements make it much easier to read, use, and debug queries within the explorer.
+The chat system uses Coinbase's AgentKit framework for blockchain interactions:
 
-### Troubleshooting
+```typescript
+// tools.ts - AgentKit setup
+export async function createAgentKit(chainId?: number) {
+    const selectedChain = CHAINS[chainId || baseSepolia.id];
 
-- If you see errors about a missing or malformed API key, ensure your `.env` file is correct and the server has been restarted.
-- If you see `subgraph not found: no allocations`, your subgraph may still be indexing or awaiting allocation on the decentralized network. Check the status in The Graph Explorer.
+    const walletClient = createWalletClient({
+        account: privateKeyToAccount(process.env.AGENT_PRIVATE_KEY),
+        chain: selectedChain,
+        transport: http(selectedChain.rpc),
+    });
 
-## Implementation Guide
+    const viemWalletProvider = new ViemWalletProvider(walletClient);
 
-### Setting Up the Web Application
+    const agentKit = await AgentKit.from({
+        walletProvider: viemWalletProvider,
+        actionProviders: [
+            walletActionProvider(),
+            contractInteractor(chainId),
+            graphQuerierProvider(),
+            tokenApiProvider(),
+            zoraCoinCreatorProvider(),
+            tokenDetailsProvider(),
+        ],
+    });
 
-1. **Install Dependencies**
+    return { agentKit, address: walletClient.account.address };
+}
 
-    ```bash
-    cd apps/web
-    npm install
-    ```
+// Convert AgentKit actions to AI SDK tools
+export function getTools(agentKit: AgentKit) {
+    return agentKitToTools(agentKit);
+}
+```
 
-2. **Configure Environment Variables**
-   Create a `.env.local` file:
+### Authentication & Security
 
-    ```
-    NEXT_PUBLIC_CHAIN_ID=8453
-    NEXT_PUBLIC_RPC_URL=https://mainnet.base.org
-    ```
+The chat requires proper authentication:
 
-3. **Implement Coin Creation**
+1. **Wallet Connection**: Users must connect via RainbowKit
+2. **SIWE Authentication**: Sign-In with Ethereum for session management
+3. **Chain Validation**: Ensures user is on supported networks
+4. **Private Key Management**: Agent operations use secure environment variables
 
-    ```typescript
-    import { useCoinCreation } from '@/hooks/useCoinCreation';
-
-    function CreateCoinForm() {
-      const { createCoin, isLoading } = useCoinCreation({
-        name: "My Coin",
-        symbol: "MC",
-        uri: "ipfs://...",
-        // ... other parameters
-      });
-
-      return (
-        <Button onClick={() => createCoin()}>
-          {isLoading ? "Creating..." : "Create Coin"}
-        </Button>
-      );
+```typescript
+// Authentication check in chat interface
+const renderAuthStatus = () => {
+    if (!isConnected) {
+        return <div>Please connect your wallet to use the chat.</div>;
     }
-    ```
-
-4. **Add Theme Support**
-
-    ```typescript
-    import { ThemeProvider } from '@/contexts/ThemeContext';
-
-    export default function RootLayout({ children }) {
-      return (
-        <ThemeProvider>
-          {children}
-        </ThemeProvider>
-      );
+    if (!session) {
+        return <div>Please sign in to authenticate and use the chat.</div>;
     }
-    ```
+    if (!currentChain) {
+        return <div>Please switch to a supported chain.</div>;
+    }
+    return null;
+};
+```
 
-### Setting Up the Subgraph
+## 🗄️ Enhanced Subgraph
 
-1. **Install Dependencies**
+### Overview
 
-    ```bash
-    cd packages/subgraph
-    npm install
-    ```
+The subgraph indexes Zora Factory events and coin data on Base mainnet, providing efficient GraphQL queries for on-chain data.
 
-2. **Configure Subgraph**
-   Update `subgraph.yaml` with your contract addresses and network settings.
+### Schema Updates
 
-3. **Generate Types**
+Enhanced schema with comprehensive entity relationships:
 
-    ```bash
-    npm run codegen
-    ```
+```graphql
+# packages/subgraph/schema.graphql
 
-4. **Build and Deploy**
-    ```bash
-    npm run build
-    npm run deploy
-    ```
+type CoinCreated @entity(immutable: true) {
+    id: Bytes!
+    caller: Caller!
+    payoutRecipient: Bytes! # address
+    platformReferrer: Bytes! # address
+    currency: Bytes! @index # address
+    uri: String! # metadata URI
+    name: String! # coin name
+    symbol: String! # coin symbol
+    coin: Bytes! # coin contract address
+    pool: Bytes! # liquidity pool address
+    version: String! # factory version
+    blockNumber: BigInt!
+    blockTimestamp: BigInt!
+    transactionHash: Bytes!
+}
 
-## Development
+type Caller @entity(immutable: true) {
+    id: Bytes!
+    coinsCreated: [CoinCreated!]! @derivedFrom(field: "caller")
+    blockNumber: BigInt!
+    blockTimestamp: BigInt!
+    transactionHash: Bytes!
+}
 
-### Running the Web Application
+# Timeseries for analytics
+type CoinCreationEvent @entity(timeseries: true) {
+    id: Int8!
+    timestamp: Timestamp!
+    coin: Bytes!
+    caller: Bytes!
+    currency: Bytes!
+}
+
+# Individual coin transfer events
+type Transfer @entity(immutable: true) {
+    id: Bytes!
+    from: Bytes!
+    to: Bytes!
+    value: BigInt!
+    contract: Bytes! # coin contract address
+    blockNumber: BigInt!
+    blockTimestamp: BigInt!
+    transactionHash: Bytes!
+}
+```
+
+### Event Handlers
+
+```typescript
+// packages/subgraph/src/zora-factory-impl.ts
+
+export function handleCoinCreated(event: CoinCreatedEvent): void {
+    // Create or load caller entity
+    let caller = Caller.load(event.params.caller);
+    if (caller === null) {
+        caller = new Caller(event.params.caller);
+        caller.blockNumber = event.block.number;
+        caller.blockTimestamp = event.block.timestamp;
+        caller.transactionHash = event.transaction.hash;
+        caller.save();
+    }
+
+    // Create coin creation entity
+    let entity = new CoinCreated(
+        event.transaction.hash.concatI32(event.logIndex.toI32())
+    );
+    entity.caller = caller.id;
+    entity.payoutRecipient = event.params.payoutRecipient;
+    entity.platformReferrer = event.params.platformReferrer;
+    entity.currency = event.params.currency;
+    entity.uri = event.params.uri;
+    entity.name = event.params.name;
+    entity.symbol = event.params.symbol;
+    entity.coin = event.params.coin;
+    entity.pool = event.params.pool;
+    entity.version = event.params.version;
+    entity.blockNumber = event.block.number;
+    entity.blockTimestamp = event.block.timestamp;
+    entity.transactionHash = event.transaction.hash;
+    entity.save();
+
+    // Create timeseries event for analytics
+    let tsEvent = new CoinCreationEvent(0);
+    tsEvent.coin = event.params.coin;
+    tsEvent.caller = event.params.caller;
+    tsEvent.currency = event.params.currency;
+    tsEvent.save();
+
+    // Create dynamic data source for coin contract
+    ZoraCoin.create(event.params.coin);
+}
+```
+
+### Dynamic Data Sources
+
+The subgraph uses templates to index individual coin contracts:
+
+```yaml
+# packages/subgraph/subgraph.yaml
+templates:
+    - kind: ethereum/contract
+      name: ZoraCoin
+      network: base
+      source:
+          abi: ZoraCoin
+      mapping:
+          kind: ethereum/events
+          apiVersion: 0.0.9
+          language: wasm/assemblyscript
+          entities:
+              - Transfer
+              - Approval
+          eventHandlers:
+              - event: Transfer(indexed address,indexed address,uint256)
+                handler: handleTransfer
+              - event: Approval(indexed address,indexed address,uint256)
+                handler: handleApproval
+          file: ./src/zora-coin.ts
+```
+
+### Example Queries
+
+```graphql
+# Get recent coin creations with creator info
+{
+    coinCreateds(first: 10, orderBy: blockTimestamp, orderDirection: desc) {
+        id
+        name
+        symbol
+        coin
+        uri
+        caller {
+            id
+            coinsCreated {
+                name
+                symbol
+            }
+        }
+        blockTimestamp
+        transactionHash
+    }
+}
+
+# Get coins by specific creator
+{
+    caller(id: "0x...") {
+        id
+        coinsCreated {
+            name
+            symbol
+            coin
+            pool
+            blockTimestamp
+        }
+    }
+}
+
+# Get transfer events for a specific coin
+{
+    transfers(where: { contract: "0x..." }) {
+        from
+        to
+        value
+        blockTimestamp
+        transactionHash
+    }
+}
+```
+
+## 🔍 Subgraph Explorer
+
+### Overview
+
+Interactive GraphQL playground for querying the deployed subgraph with syntax highlighting and real-time results.
+
+### Features
+
+- **Dual Endpoints**: Development (Studio) and Production (Gateway)
+- **Syntax Highlighting**: GraphQL query editor with Prism.js
+- **Real-time Results**: JSON response viewer with collapsible trees
+- **API Key Support**: Automatic authorization for production gateway
+- **Example Queries**: Pre-loaded default query for exploration
+
+### Implementation
+
+```typescript
+// apps/web/app/subgraph-explorer/page.tsx
+
+export default function SubgraphExplorer() {
+    const [endpoint, setEndpoint] = useState("dev");
+    const [queryText, setQueryText] = useState(DEFAULT_QUERY);
+
+    const { data, error, isLoading } = useQuery({
+        queryKey: ["subgraph-data", endpoint, submittedQuery],
+        queryFn: async () => {
+            const url = endpoint === "prod" ? PROD_URL : DEV_URL;
+            const headers = endpoint === "prod"
+                ? { Authorization: `Bearer ${process.env.NEXT_PUBLIC_GRAPH_API_KEY}` }
+                : {};
+
+            const result = await request(url, submittedQuery, {}, headers);
+            return stringifyBigInts(result);
+        },
+    });
+
+    return (
+        <div className="container mx-auto px-4 py-8">
+            <div className="flex flex-col md:flex-row gap-8 h-[500px]">
+                {/* Query Editor */}
+                <div className="flex-1">
+                    <Editor
+                        value={queryText}
+                        onValueChange={setQueryText}
+                        highlight={(code) =>
+                            Prism.highlight(code, Prism.languages.graphql, "graphql")
+                        }
+                    />
+                </div>
+
+                {/* Response Viewer */}
+                <div className="flex-1">
+                    <ReactJson
+                        src={data || {}}
+                        theme="monokai"
+                        collapsed={2}
+                        enableClipboard={true}
+                    />
+                </div>
+            </div>
+        </div>
+    );
+}
+```
+
+### Endpoints
+
+- **Development**: `https://api.studio.thegraph.com/query/57382/zora-coins-factory-base-mainnet/version/latest`
+- **Production**: `https://gateway.thegraph.com/api/subgraphs/id/HmU5oZZCHNxv7h79G6zJjkUN916uQPXamcMrCTg9YNm6`
+
+## 🛠️ Implementation Guide
+
+### Prerequisites
+
+```bash
+# Required environment variables
+AGENT_PRIVATE_KEY=0x...           # Private key for AI agent wallet
+GRAPH_API_KEY=your_api_key        # The Graph API key for production
+NEXT_PUBLIC_GRAPH_API_KEY=...     # Public API key for client-side queries
+NEXTAUTH_SECRET=your_secret       # NextAuth secret
+NEXTAUTH_URL=http://localhost:3000
+```
+
+### Installation
+
+1. **Clone and Install**
+
+```bash
+git clone <repository>
+cd zora-coin-starterkit
+npm install
+```
+
+2. **Web Application Setup**
 
 ```bash
 cd apps/web
-npm run dev
+npm install
+cp .env.example .env.local
+# Edit .env.local with your configuration
 ```
 
-### Running the Subgraph
+3. **Subgraph Setup**
 
 ```bash
 cd packages/subgraph
-npm run create-local
-npm run deploy-local
+npm install
+# Configure subgraph.yaml with your network settings
 ```
 
-## Contributing
+### Development
+
+```bash
+# Start web application
+cd apps/web
+npm run dev
+
+# Deploy subgraph (first time)
+cd packages/subgraph
+npm run create-local    # For local development
+npm run deploy-local
+
+# Or deploy to hosted service
+graph auth --product subgraph-studio
+npm run deploy
+```
+
+### Environment Configuration
+
+```bash
+# apps/web/.env.local
+NEXT_PUBLIC_CHAIN_ID=8453
+NEXT_PUBLIC_RPC_URL=https://mainnet.base.org
+AGENT_PRIVATE_KEY=0x...
+GRAPH_API_KEY=...
+NEXT_PUBLIC_GRAPH_API_KEY=...
+NEXTAUTH_SECRET=...
+NEXTAUTH_URL=http://localhost:3000
+```
+
+## 🎯 Usage Examples
+
+### Creating Coins via Chat
+
+```
+User: "Create a coin called 'Holiday Spirit' with symbol 'HOLIDAY' using this metadata: ipfs://QmExampleHash and payout to 0x..."
+
+AI: I'll create a Zora coin for you with those specifications.
+[Tool execution: createZoraCoin]
+✅ Successfully created coin "Holiday Spirit" (HOLIDAY123456)
+Transaction: 0x...
+Coin address: 0x...
+```
+
+### Querying Subgraph via Chat
+
+```
+User: "Show me the last 5 coins created on the platform"
+
+AI: I'll query the subgraph for recent coin creations.
+[Tool execution: querySubgraph]
+Here are the 5 most recent coins:
+1. "Winter Token" (WINTER) - Created by 0x...
+2. "Summer Vibes" (SUMMER) - Created by 0x...
+...
+```
+
+### Token Information
+
+```
+User: "Get details for token at 0x..."
+
+AI: [Tool execution: getTokenDetails]
+Token Details:
+- Name: Example Token
+- Symbol: EXT
+- Total Supply: 1,000,000
+- Decimals: 18
+```
+
+## 🏗️ Architecture
+
+### Frontend Architecture
+
+```
+React App (Next.js 15)
+├── Authentication (SIWE + NextAuth)
+├── Chat Interface (AI SDK + AgentKit)
+├── Subgraph Explorer (GraphQL + React Query)
+└── Component Library (Radix UI + TailwindCSS)
+```
+
+### Backend Architecture
+
+```
+API Routes
+├── /api/chat (Streaming AI responses)
+└── /api/auth (SIWE authentication)
+
+AgentKit Framework
+├── Action Providers (Custom blockchain tools)
+├── Wallet Provider (Viem + Private Key)
+└── Tool Registry (AI SDK integration)
+```
+
+### Blockchain Integration
+
+```
+Blockchain Layer
+├── Base Mainnet (8453)
+├── Base Sepolia (84532)
+└── Zora Factory Contract (0x777777751622c0d3258f214F9DF38E35BF45baF3)
+
+Subgraph Layer
+├── Event Indexing (CoinCreated, Transfer, Approval)
+├── Entity Relationships (Caller -> CoinCreated)
+└── GraphQL API (The Graph Protocol)
+```
+
+## 🔧 Advanced Configuration
+
+### Custom Action Providers
+
+Create custom AI tools by extending ActionProvider:
+
+```typescript
+class CustomProvider extends ActionProvider<EvmWalletProvider> {
+    constructor() {
+        super("custom-provider", []);
+    }
+
+    supportsNetwork = (network: Network): boolean => {
+        return network.chainId === "8453";
+    };
+
+    @CreateAction({
+        name: "customAction",
+        description: "Performs custom blockchain operation",
+        schema: z.object({
+            param1: z.string(),
+            param2: z.number(),
+        }),
+    })
+    async customAction(
+        walletProvider: EvmWalletProvider,
+        args: { param1: string; param2: number }
+    ) {
+        // Custom implementation
+        return { result: "success" };
+    }
+}
+```
+
+### Subgraph Customization
+
+Extend the schema for additional data:
+
+```graphql
+type CustomEntity @entity {
+    id: Bytes!
+    customField: String!
+    relatedCoin: CoinCreated!
+    # Add your custom fields
+}
+```
+
+### Chain Configuration
+
+Add support for new networks:
+
+```typescript
+// apps/web/app/config/chains.ts
+export const CHAINS = {
+    8453: {
+        // Base
+        name: "Base",
+        rpc: "https://mainnet.base.org",
+        factory: "0x777777751622c0d3258f214F9DF38E35BF45baF3",
+        icon: "🔵",
+    },
+    // Add new chains here
+};
+```
+
+## 🚀 Deployment
+
+### Web Application
+
+```bash
+# Build for production
+npm run build
+
+# Deploy to Vercel
+vercel deploy
+
+# Or deploy to other platforms
+npm run start
+```
+
+### Subgraph
+
+```bash
+# Deploy to The Graph Studio
+graph auth --product subgraph-studio
+graph deploy --studio zora-coins-factory
+
+# Or deploy to hosted service
+graph deploy --product hosted-service your-github-username/subgraph-name
+```
+
+## 🤝 Contributing
 
 1. Fork the repository
 2. Create your feature branch (`git checkout -b feature/amazing-feature`)
@@ -331,6 +839,13 @@ npm run deploy-local
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
-## License
+## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🔗 Links
+
+- [Zora Protocol Documentation](https://docs.zora.co/)
+- [The Graph Documentation](https://thegraph.com/docs/)
+- [AgentKit Documentation](https://github.com/coinbase/agentkit)
+- [AI SDK Documentation](https://sdk.vercel.ai/)
