@@ -26,6 +26,8 @@ dataSources:
           abis:
               - name: ZoraFactoryImpl
                 file: ./abis/ZoraFactoryImpl.json
+              - name: ZoraCoin
+                file: ./abis/ZoraCoin.json
           eventHandlers:
               - event: CoinCreated(indexed address,indexed address,indexed address,address,string,string,string,address,address,string)
                 handler: handleCoinCreated
@@ -36,3 +38,26 @@ dataSources:
               - event: Upgraded(indexed address)
                 handler: handleUpgraded
           file: ./src/zora-factory-impl.ts
+templates:
+    - kind: ethereum/contract
+      name: ZoraCoin
+      network: base
+      source:
+          abi: ZoraCoin
+      mapping:
+          kind: ethereum/events
+          apiVersion: 0.0.9
+          language: wasm/assemblyscript
+          entities:
+              - CoinCreated
+              - Transfer
+              - Approval
+          abis:
+              - name: ZoraCoin
+                file: ./abis/ZoraCoin.json
+          eventHandlers:
+              - event: Transfer(indexed address,indexed address,uint256)
+                handler: handleTransfer
+              - event: Approval(indexed address,indexed address,uint256)
+                handler: handleApproval
+          file: ./src/zora-coin.ts

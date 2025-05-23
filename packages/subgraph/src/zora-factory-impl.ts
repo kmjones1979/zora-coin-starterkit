@@ -12,6 +12,7 @@ import {
     Upgraded,
     CoinCreationEvent,
 } from "../generated/schema";
+import { ZoraCoin } from "../generated/templates";
 
 export function handleCoinCreated(event: CoinCreatedEvent): void {
     let caller = Caller.load(event.params.caller);
@@ -50,6 +51,9 @@ export function handleCoinCreated(event: CoinCreatedEvent): void {
     tsEvent.currency = event.params.currency;
 
     tsEvent.save();
+
+    // Create dynamic data source for the new coin contract
+    ZoraCoin.create(event.params.coin);
 }
 
 export function handleInitialized(event: InitializedEvent): void {

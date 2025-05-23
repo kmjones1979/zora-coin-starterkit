@@ -68,3 +68,26 @@ type CoinCreationStats
     # We can add dimensions here if needed, for example, to count coins per caller
     caller: Bytes! # This would make it stats per caller per interval
 }
+
+# Individual coin contract events
+type Transfer @entity(immutable: true) {
+    id: Bytes!
+    from: Bytes! # address
+    to: Bytes! # address
+    value: BigInt! # uint256
+    contract: Bytes! # The coin contract address
+    blockNumber: BigInt!
+    blockTimestamp: BigInt!
+    transactionHash: Bytes!
+}
+
+type Approval @entity(immutable: true) {
+    id: Bytes!
+    owner: Bytes! # address
+    spender: Bytes! # address
+    value: BigInt! # uint256
+    contract: Bytes! # The coin contract address
+    blockNumber: BigInt!
+    blockTimestamp: BigInt!
+    transactionHash: Bytes!
+}
