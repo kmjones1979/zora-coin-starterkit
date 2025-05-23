@@ -4,6 +4,7 @@ import { getServerSession, type NextAuthOptions } from "next-auth";
 import { baseSepolia, foundry, type Chain } from "viem/chains";
 import { getTools, createAgentKit } from "../../utils/chat/tools";
 import { siweAuthOptions } from "../../utils/scaffold-eth/auth";
+import { CHAINS } from "../../config/chains";
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
@@ -18,8 +19,19 @@ export async function POST(req: Request) {
         return new Response("Unauthorized", { status: 401 });
     }
 
-    const { messages } = await req.json();
-    const { agentKit } = await createAgentKit();
+    const { messages, chainId } = await req.json();
+
+    // Use the provided chainId or fallback to baseSepolia
+    const selectedChainId = chainId || baseSepolia.id;
+    const selectedChain = CHAINS[selectedChainId as keyof typeof CHAINS];
+
+    if (!selectedChain) {
+        return new Response(`Unsupported chain ID: ${selectedChainId}`, {
+            status: 400,
+        });
+    }
+
+    const { agentKit } = await createAgentKit(selectedChainId);
 
     const prompt = `
   You are a helpful Web3 assistant operating on EVM-compatible blockchains.
@@ -36,19 +48,21 @@ export async function POST(req: Request) {
 
   When creating coins or sending transactions, clearly state the action to be taken and ask for confirmation if appropriate or if parameters are ambiguous.
   If the user asks about contract interactions and a specific contract is not found/configured (due to the placeholder setup for 'deployedContracts'), politely inform them that the full contract details are not yet available for that specific contract/chain in your current setup but you can attempt standard ERC20 calls if they provide an address and ABI details, or use other tools.
-  The primary connected wallet is on the Foundry network (chainId: 31337), but tools like 'createZoraCoin' and 'getTokenDetails' can operate on other chains if specified by the user and supported by your CHAINS configuration.
+  You are currently configured to work with ${selectedChain.name} (chainId: ${selectedChainId}). Tools like 'createZoraCoin' and 'getTokenDetails' will operate on this chain unless otherwise specified by the user.
   The current user's address is ${userAddress}.
   `;
 
     try {
-        console.log("[api/chat] Calling streamText with AI SDK..."); // Log 6: Before calling AI
+        console.log(
+            `[api/chat] Calling streamText with AI SDK for chain ${selectedChain.name} (${selectedChainId})...`
+        );
         const result = await streamText({
             model: openai("gpt-4-turbo-preview"),
             system: prompt,
             messages,
             tools: getTools(agentKit),
         });
-        console.log("[api/chat] streamText initial call completed."); // Log 7a: After initial AI call returns stream object
+        console.log("[api/chat] streamText initial call completed.");
 
         // --- DEBUG: Log stream parts using async iterator ---
         let loggedToolCalls = 0;

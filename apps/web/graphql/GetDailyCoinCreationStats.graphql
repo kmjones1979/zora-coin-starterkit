@@ -1,14 +1,10 @@
-query GetDailyCoinCreationStats($startTime: BigInt!) {
-    dailyStats: coinCreationStatses(
-        interval: "day"
-        where: { timestamp_gte: $startTime }
-        orderBy: timestamp
-        orderDirection: asc
-        # Fetch a bit more than 7 if there are gaps, client can slice
-        first: 10
-    ) {
+query GetDailyCoinCreationStats {
+    coinCreateds(orderBy: blockTimestamp, orderDirection: desc, first: 10) {
         id
-        timestamp # Start of the day (Unix timestamp)
-        coinCount
+        blockTimestamp
+        name
+        symbol
+        coin
+        uri
     }
 }

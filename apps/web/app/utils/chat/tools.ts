@@ -16,18 +16,27 @@ import { tool } from "ai";
 import fetch from "node-fetch";
 import { createWalletClient, http } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { foundry } from "viem/chains";
+import { foundry, baseSepolia } from "viem/chains";
 import { z } from "zod";
+import { CHAINS } from "../../config/chains";
 
 export { SUBGRAPH_ENDPOINTS };
 
-export async function createAgentKit() {
+export async function createAgentKit(chainId?: number) {
+    // Use provided chainId or fallback to baseSepolia
+    const selectedChainId = chainId || baseSepolia.id;
+    const selectedChain = CHAINS[selectedChainId as keyof typeof CHAINS];
+
+    if (!selectedChain) {
+        throw new Error(`Unsupported chain ID: ${selectedChainId}`);
+    }
+
     const walletClient = createWalletClient({
         account: privateKeyToAccount(
             process.env.AGENT_PRIVATE_KEY as `0x${string}`
         ),
-        chain: foundry,
-        transport: http(),
+        chain: selectedChain,
+        transport: http(selectedChain.rpc),
     });
     const viemWalletProvider = new ViemWalletProvider(walletClient as any);
 
@@ -35,7 +44,7 @@ export async function createAgentKit() {
         walletProvider: viemWalletProvider,
         actionProviders: [
             walletActionProvider(),
-            contractInteractor(foundry.id),
+            contractInteractor(selectedChainId),
             graphQuerierProvider(),
             tokenApiProvider(),
             zoraCoinCreatorProvider(),
@@ -43,7 +52,12 @@ export async function createAgentKit() {
         ],
     });
 
-    return { agentKit, address: walletClient.account.address };
+    return {
+        agentKit,
+        address: walletClient.account.address,
+        chainId: selectedChainId,
+        chainName: selectedChain.name,
+    };
 }
 
 export function getTools(agentKit: AgentKit) {

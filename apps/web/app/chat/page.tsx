@@ -7,12 +7,16 @@ import { ChatInput } from "../components/chat/ChatInput";
 import { MessageToolCalls } from "../components/chat/MessageToolCalls";
 import { StatusIndicator } from "../components/chat/StatusIndicator";
 import { Header } from "../components/Header";
-import { useAccount } from "wagmi";
+import { useAccount, useChainId } from "wagmi";
 import { useSession } from "next-auth/react";
+import { CHAINS } from "../config/chains";
 
 export default function Chat() {
     const { address, isConnected } = useAccount();
     const { data: session, status: sessionStatus } = useSession();
+    const chainId = useChainId();
+    const currentChain = CHAINS[chainId as keyof typeof CHAINS];
+
     const {
         messages,
         input,
@@ -22,6 +26,9 @@ export default function Chat() {
         stop,
     } = useChat({
         maxSteps: 10,
+        body: {
+            chainId,
+        },
     });
     const messagesContainerRef = useRef<HTMLDivElement>(null);
     const lastMessageCount = useRef(messages.length);
@@ -32,6 +39,10 @@ export default function Chat() {
         e.preventDefault();
         if (!session) {
             alert("Please connect your wallet and sign in to use the chat.");
+            return;
+        }
+        if (!currentChain) {
+            alert("Please switch to a supported chain before using the chat.");
             return;
         }
         originalHandleSubmit(e, options);
@@ -81,6 +92,21 @@ export default function Chat() {
             );
         }
 
+        // Check if current chain is supported
+        if (!currentChain) {
+            const supportedChains = Object.values(CHAINS)
+                .map((chain) => chain.name)
+                .join(", ");
+            return (
+                <div className="text-center p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                    <p className="text-red-800 dark:text-red-200">
+                        Unsupported chain (ID: {chainId}). Please switch to a
+                        supported chain: {supportedChains}
+                    </p>
+                </div>
+            );
+        }
+
         return null;
     };
 
@@ -90,13 +116,32 @@ export default function Chat() {
             <div className="container mx-auto px-4 py-8 max-w-4xl">
                 <div className="bg-card border rounded-lg shadow-sm h-[calc(100vh-12rem)] flex flex-col">
                     <div className="border-b p-4">
-                        <h1 className="text-xl font-semibold">
-                            AI Chat Assistant
-                        </h1>
-                        <p className="text-sm text-muted-foreground">
-                            Ask questions about Web3, create Zora coins, or
-                            interact with smart contracts.
-                        </p>
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h1 className="text-xl font-semibold">
+                                    AI Chat Assistant
+                                </h1>
+                                <p className="text-sm text-muted-foreground">
+                                    Ask questions about Web3, create Zora coins,
+                                    or interact with smart contracts.
+                                </p>
+                            </div>
+                            {currentChain && (
+                                <div className="flex items-center gap-2 px-3 py-2 bg-secondary rounded-lg">
+                                    <span className="text-lg">
+                                        {currentChain.icon}
+                                    </span>
+                                    <div className="text-sm">
+                                        <div className="font-medium">
+                                            {currentChain.name}
+                                        </div>
+                                        <div className="text-muted-foreground">
+                                            Chain {chainId}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                     </div>
 
                     {renderAuthStatus()}
