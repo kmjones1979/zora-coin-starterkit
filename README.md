@@ -597,6 +597,7 @@ export default function SubgraphExplorer() {
 
 ```bash
 # Required environment variables
+NEXT_PUBLIC_ZORA_API_KEY=...      # Zora API key for coin queries (get from https://zora.co/settings/developer)
 AGENT_PRIVATE_KEY=0x...           # Private key for AI agent wallet
 GRAPH_API_KEY=your_api_key        # The Graph API key for production
 NEXT_PUBLIC_GRAPH_API_KEY=...     # Public API key for client-side queries
@@ -623,7 +624,20 @@ cp .env.example .env.local
 # Edit .env.local with your configuration
 ```
 
-3. **Subgraph Setup**
+3. **Zora API Key Setup** (Required for SDK v0.2.1+)
+
+The Zora Coins SDK requires an API key to access coin data:
+
+1. Visit [https://zora.co](https://zora.co) and connect your wallet
+2. Navigate to [Developer Settings](https://zora.co/settings/developer)
+3. Create a new API key for your application
+4. Add it to your `.env.local` file:
+    ```bash
+    NEXT_PUBLIC_ZORA_API_KEY=your-actual-api-key-here
+    ```
+5. Restart your development server
+
+6. **Subgraph Setup**
 
 ```bash
 cd packages/subgraph
@@ -652,6 +666,7 @@ npm run deploy
 
 ```bash
 # apps/web/.env.local
+NEXT_PUBLIC_ZORA_API_KEY=your-zora-api-key-here
 NEXT_PUBLIC_CHAIN_ID=8453
 NEXT_PUBLIC_RPC_URL=https://mainnet.base.org
 AGENT_PRIVATE_KEY=0x...
@@ -700,6 +715,25 @@ Token Details:
 - Total Supply: 1,000,000
 - Decimals: 18
 ```
+
+## 🔧 Troubleshooting
+
+### Coins Showing "N/A" or "Unknown Chain"
+
+This usually indicates a missing or invalid Zora API key:
+
+1. **Check API Key**: Ensure `NEXT_PUBLIC_ZORA_API_KEY` is set in your `.env.local`
+2. **Verify API Key**: Make sure your API key is valid and not expired
+3. **Restart Server**: Restart your development server after adding the API key
+4. **Check Console**: Look for API key initialization messages in browser console
+
+Expected console message: `✅ Zora SDK initialized with API key successfully`
+
+### Chain Connection Issues
+
+- Ensure you're connected to a supported network (Base, Zora, Optimism, Arbitrum, Blast)
+- Check that your wallet is properly connected via RainbowKit
+- Verify the chain ID matches the expected values in the console logs
 
 ## 🏗️ Architecture
 
