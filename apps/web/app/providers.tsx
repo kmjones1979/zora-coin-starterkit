@@ -9,8 +9,14 @@ import dynamic from "next/dynamic";
 import { DebugProvider } from "./contexts/DebugContext";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { SessionProvider } from "next-auth/react";
+import { initializeZoraSDK } from "./config/zora";
 
 const queryClient = new QueryClient();
+
+// Initialize Zora SDK on app startup
+if (typeof window !== "undefined") {
+    initializeZoraSDK();
+}
 
 export function Providers({ children }: { children: React.ReactNode }) {
     return (

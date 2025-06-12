@@ -19,9 +19,9 @@ import { Card, CardHeader, CardTitle, CardContent } from "./ui/card";
 interface Coin {
     name: string;
     symbol: string;
-    address: string;
+    address?: string;
     createdAt: string;
-    creatorAddress: string;
+    creatorAddress?: string;
     marketCap?: string;
     chainId: number;
     volume24h?: string;
@@ -79,12 +79,25 @@ export function GetCoins({
                         "and count:",
                         count
                     );
+                    console.log(
+                        "API Key Status:",
+                        process.env.NEXT_PUBLIC_ZORA_API_KEY ? "Set" : "Not Set"
+                    );
                 }
 
                 let response;
                 switch (type) {
                     case "new":
-                        response = await getCoinsNew({ count, after });
+                        console.log("🔍 Calling getCoinsNew with params:", {
+                            count,
+                            after,
+                        });
+                        // TEMP: Use getCoinsLastTraded instead to test if the issue is specific to getCoinsNew
+                        response = await getCoinsLastTraded({ count, after });
+                        console.log(
+                            "📊 getCoinsNew response (using getCoinsLastTraded):",
+                            response
+                        );
                         break;
                     case "topGainers":
                         response = await getCoinsTopGainers({ count, after });
@@ -119,8 +132,8 @@ export function GetCoins({
                 }
 
                 if (response.data?.exploreList?.edges) {
-                    const fetchedCoins = response.data.exploreList.edges
-                        .map((edge: any) => ({
+                    const allCoins = response.data.exploreList.edges.map(
+                        (edge: any) => ({
                             name: edge.node.name,
                             symbol: edge.node.symbol,
                             address: edge.node.address,
@@ -131,16 +144,86 @@ export function GetCoins({
                             volume24h: edge.node.volume24h,
                             uniqueHolders: edge.node.uniqueHolders,
                             marketCapDelta24h: edge.node.marketCapDelta24h,
-                        }))
-                        .sort(
-                            (a: Coin, b: Coin) =>
-                                new Date(b.createdAt).getTime() -
-                                new Date(a.createdAt).getTime()
-                        );
+                        })
+                    );
+
                     if (isDebug) {
-                        console.log("Processed coins:", fetchedCoins);
+                        console.log("📊 All coins from API:", allCoins);
+                        console.log("🔗 Detailed chain analysis:");
+                        allCoins.forEach((coin: any, index: number) => {
+                            console.log(
+                                `  Coin ${index + 1}: ${coin.name} (${coin.symbol}) - Chain ID: ${coin.chainId} - Created: ${coin.createdAt}`
+                            );
+                        });
+                        console.log(
+                            "🔗 Coins by chain:",
+                            allCoins.reduce((acc: any, coin: any) => {
+                                const chain = coin.chainId || "unknown";
+                                acc[chain] = (acc[chain] || 0) + 1;
+                                return acc;
+                            }, {})
+                        );
+                        console.log("🎯 Current connected chain:", chainId);
+                        console.log("🎯 Expected Base mainnet chain ID: 8453");
+                        console.log("🎯 Expected Base Sepolia chain ID: 84532");
+                        console.log(
+                            "🔑 API key first 10 chars:",
+                            process.env.NEXT_PUBLIC_ZORA_API_KEY?.substring(
+                                0,
+                                10
+                            ) || "NOT SET"
+                        );
                     }
+
+                    // Filter coins by current chain if we have one
+                    // TEMP: Show all coins for "new" type to debug the issue
+                    const filteredCoins =
+                        type === "new"
+                            ? allCoins // Show all chains for "new" to debug
+                            : chainId
+                              ? allCoins.filter(
+                                    (coin: any) => coin.chainId === chainId
+                                )
+                              : allCoins;
+
+                    const fetchedCoins = filteredCoins.sort(
+                        (a: Coin, b: Coin) =>
+                            new Date(b.createdAt).getTime() -
+                            new Date(a.createdAt).getTime()
+                    );
+
+                    if (isDebug) {
+                        console.log(
+                            "📱 Filtered coins for current chain:",
+                            fetchedCoins
+                        );
+                        console.log(
+                            "📈 Total coins before filter:",
+                            allCoins.length
+                        );
+                        console.log(
+                            "📈 Total coins after filter:",
+                            fetchedCoins.length
+                        );
+                    }
+
                     setCoins(fetchedCoins);
+
+                    // If no coins found for current chain, show message
+                    if (fetchedCoins.length === 0 && allCoins.length > 0) {
+                        if (isDebug) {
+                            console.log(
+                                "⚠️ No coins found for current chain, but found",
+                                allCoins.length,
+                                "coins on other chains"
+                            );
+                        }
+                        setError(
+                            `No ${type === "new" ? "new " : ""}coins found on ${CHAINS[chainId as keyof typeof CHAINS]?.name || "this network"}. Found ${allCoins.length} coins on other networks.`
+                        );
+                    } else if (fetchedCoins.length === 0) {
+                        setError("No coins found");
+                    }
                 } else {
                     if (isDebug) {
                         console.log(
@@ -154,7 +237,7 @@ export function GetCoins({
                             }
                         );
                     }
-                    setError("No coins found on this network");
+                    setError("No coins found in API response");
                 }
             } catch (err) {
                 if (isDebug) {
@@ -172,8 +255,26 @@ export function GetCoins({
     }, [chainId, mounted, count, after, type, isDebug]);
 
     const formatDate = (dateString: string) => {
+        // Handle null, undefined, or empty strings
+        if (!dateString || dateString.trim() === "") {
+            return "N/A";
+        }
+
         const date = new Date(dateString);
+
+        // Check if the date is valid
+        if (isNaN(date.getTime())) {
+            return "Invalid Date";
+        }
+
         return date.toISOString().split("T")[0]; // YYYY-MM-DD format
+    };
+
+    const formatAddress = (address: string | undefined) => {
+        if (!address || address.trim() === "") {
+            return "N/A";
+        }
+        return `${address.slice(0, 6)}...${address.slice(-4)}`;
     };
 
     const getTitle = () => {
@@ -269,13 +370,10 @@ export function GetCoins({
                                     </p>
                                     <p className="text-muted-foreground">
                                         Creator:{" "}
-                                        {coin.creatorAddress.slice(0, 6)}
-                                        ...
-                                        {coin.creatorAddress.slice(-4)}
+                                        {formatAddress(coin.creatorAddress)}
                                     </p>
                                     <p className="text-muted-foreground">
-                                        Contract: {coin.address.slice(0, 6)}...
-                                        {coin.address.slice(-4)}
+                                        Contract: {formatAddress(coin.address)}
                                     </p>
                                     {coin.marketCap && (
                                         <p className="text-muted-foreground">
@@ -298,18 +396,20 @@ export function GetCoins({
                                             %
                                         </p>
                                     )}
-                                    <a
-                                        href={`${
-                                            CHAINS[
-                                                chainId as keyof typeof CHAINS
-                                            ].explorer
-                                        }/address/${coin.address}`}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="text-primary hover:text-primary/80 mt-2 inline-block"
-                                    >
-                                        View on Explorer
-                                    </a>
+                                    {coin.address && (
+                                        <a
+                                            href={`${
+                                                CHAINS[
+                                                    chainId as keyof typeof CHAINS
+                                                ].explorer
+                                            }/address/${coin.address}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-primary hover:text-primary/80 mt-2 inline-block"
+                                        >
+                                            View on Explorer
+                                        </a>
+                                    )}
                                 </div>
                             </div>
                         ))}
