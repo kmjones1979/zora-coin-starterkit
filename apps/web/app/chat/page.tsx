@@ -10,12 +10,19 @@ import { Header } from "../components/Header";
 import { useAccount, useChainId } from "wagmi";
 import { useSession } from "next-auth/react";
 import { CHAINS } from "../config/chains";
+import { PersonalitySelector } from "../components/PersonalitySelector";
+import { usePersonality } from "../contexts/PersonalityContext";
 
 export default function Chat() {
     const { address, isConnected } = useAccount();
     const { data: session, status: sessionStatus } = useSession();
     const chainId = useChainId();
     const currentChain = CHAINS[chainId as keyof typeof CHAINS];
+    const {
+        selectedPersonality,
+        setSelectedPersonality,
+        getCurrentPersonality,
+    } = usePersonality();
 
     const {
         messages,
@@ -28,6 +35,7 @@ export default function Chat() {
         maxSteps: 10,
         body: {
             chainId,
+            personality: selectedPersonality,
         },
     });
     const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -195,6 +203,10 @@ export default function Chat() {
                     </div>
 
                     <div className="border-t p-4">
+                        <PersonalitySelector
+                            selectedPersonality={selectedPersonality}
+                            onPersonalityChange={setSelectedPersonality}
+                        />
                         <div className="flex items-center gap-2 mb-2">
                             <StatusIndicator status={status} onStop={stop} />
                         </div>
