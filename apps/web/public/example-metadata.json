@@ -1,0 +1,24 @@
+{
+    "name": "Trump Coin",
+    "description": "A meme coin celebrating the 45th and 47th President of the United States",
+    "image": "https://example.com/trump-coin-image.png",
+    "external_url": "https://example.com/trump-coin",
+    "attributes": [
+        {
+            "trait_type": "Category",
+            "value": "Meme Coin"
+        },
+        {
+            "trait_type": "President",
+            "value": "Donald Trump"
+        },
+        {
+            "trait_type": "Rarity",
+            "value": "Legendary"
+        },
+        {
+            "trait_type": "Launch Year",
+            "value": 2024
+        }
+    ]
+}
