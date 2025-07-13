@@ -6,6 +6,7 @@ A comprehensive starter kit for building applications with Zora Protocol's Coin 
 
 - **AI-Powered Chat Interface**: Interactive AI assistant powered by GPT-4 with blockchain-specific tools
 - **Zora Coin Creation**: Seamless coin creation through chat commands or UI
+- **IPFS Metadata Upload**: Real-time metadata upload to IPFS via Pinata with validation
 - **Smart Contract Interaction**: Direct contract calls through AI agent
 - **Subgraph Integration**: On-chain data indexing and querying capabilities
 - **Multi-Chain Support**: Base and Base Sepolia networks
@@ -338,6 +339,176 @@ const renderAuthStatus = () => {
 };
 ```
 
+## 📁 IPFS Metadata Upload
+
+### Overview
+
+The application features a comprehensive IPFS metadata upload system that allows users to create and upload token metadata directly through the coin creation form, powered by Pinata's IPFS service.
+
+### Key Features
+
+- **Real IPFS Uploads**: Uses Pinata API for actual IPFS storage (no mock implementations)
+- **Dual Input Methods**: Upload existing JSON files or create metadata inline
+- **Validation & Waiting**: Ensures IPFS data is available before proceeding
+- **Progress Feedback**: Real-time upload status and progress indicators
+- **Example Files**: Downloadable example metadata template
+
+### Implementation
+
+#### API Route (`apps/web/app/api/upload-metadata/route.ts`)
+
+```typescript
+export async function POST(request: NextRequest) {
+    const metadata = await request.json();
+
+    // Validate metadata structure
+    if (!metadata?.name || typeof metadata.name !== "string") {
+        return NextResponse.json(
+            { error: 'Metadata must have a "name" field as a string' },
+            { status: 400 }
+        );
+    }
+
+    // Upload to Pinata
+    const response = await fetch(
+        "https://api.pinata.cloud/pinning/pinJSONToIPFS",
+        {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${PINATA_JWT}`, // or use API key + secret
+            },
+            body: JSON.stringify({
+                pinataContent: metadata,
+                pinataMetadata: {
+                    name: `${metadata.name.replace(/[^a-zA-Z0-9]/g, "_")}_metadata.json`,
+                    keyvalues: {
+                        tokenName: metadata.name,
+                        uploadedAt: new Date().toISOString(),
+                        source: "zora-coin-creator",
+                    },
+                },
+            }),
+        }
+    );
+
+    const result = await response.json();
+    const ipfsHash = result.IpfsHash;
+
+    // Wait for IPFS data availability (up to 30 seconds)
+    const ipfsUrl = `https://gateway.pinata.cloud/ipfs/${ipfsHash}`;
+    let isAvailable = false;
+    let attempts = 0;
+    const maxAttempts = 30;
+
+    while (!isAvailable && attempts < maxAttempts) {
+        try {
+            const verifyResponse = await fetch(ipfsUrl, { method: "HEAD" });
+            if (verifyResponse.ok) {
+                isAvailable = true;
+            } else {
+                await new Promise((resolve) => setTimeout(resolve, 1000));
+                attempts++;
+            }
+        } catch (error) {
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+            attempts++;
+        }
+    }
+
+    return NextResponse.json({
+        success: true,
+        ipfsHash: `ipfs://${ipfsHash}`,
+        ipfsUrl: ipfsUrl,
+        isAvailable,
+    });
+}
+```
+
+#### Coin Creation Form Integration
+
+The `CoinForm` component includes comprehensive metadata upload functionality:
+
+```typescript
+const uploadToIPFS = async (metadata: TokenMetadata): Promise<string> => {
+    setUploadProgress("Uploading to IPFS...");
+
+    const response = await fetch("/api/upload-metadata", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(metadata),
+    });
+
+    if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to upload to IPFS");
+    }
+
+    const data = await response.json();
+
+    if (!data.isAvailable) {
+        setUploadProgress("Upload successful! Waiting for IPFS propagation...");
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+    }
+
+    return data.ipfsHash;
+};
+```
+
+### Metadata Structure
+
+The system supports standard NFT metadata format:
+
+```json
+{
+    "name": "My Token",
+    "description": "A description of my token",
+    "image": "ipfs://QmImageHash",
+    "attributes": [
+        {
+            "trait_type": "Category",
+            "value": "Cryptocurrency"
+        },
+        {
+            "trait_type": "Supply",
+            "value": "1000000000"
+        }
+    ],
+    "external_url": "https://mytoken.com"
+}
+```
+
+### Usage Examples
+
+1. **File Upload**: Users can upload existing JSON metadata files
+2. **Inline Creation**: Create metadata using form fields directly in the UI
+3. **Download Example**: Get a template file to start with proper structure
+4. **Preview**: See formatted metadata before uploading
+
+### Error Handling
+
+The system includes comprehensive error handling:
+
+- **Validation**: Ensures required fields are present
+- **Network Errors**: Handles Pinata API failures gracefully
+- **IPFS Propagation**: Waits for data availability before proceeding
+- **User Feedback**: Clear error messages and progress indicators
+
+### Configuration
+
+Set up your Pinata credentials in `.env.local`:
+
+```bash
+# Option A: JWT Token (recommended)
+PINATA_JWT=your-jwt-token-here
+
+# Option B: API Key + Secret (legacy)
+PINATA_API_KEY=your-api-key-here
+PINATA_API_SECRET=your-api-secret-here
+```
+
+This eliminates the "Metadata is not a valid JSON" errors by ensuring real IPFS uploads that the Zora SDK can validate and use for coin creation.
+
 ## 🗄️ Enhanced Subgraph
 
 ### Overview
@@ -603,6 +774,11 @@ GRAPH_API_KEY=your_api_key        # The Graph API key for production
 NEXT_PUBLIC_GRAPH_API_KEY=...     # Public API key for client-side queries
 NEXTAUTH_SECRET=your_secret       # NextAuth secret
 NEXTAUTH_URL=http://localhost:3000
+
+# Pinata API credentials (for IPFS metadata uploads)
+PINATA_API_KEY=...                # Pinata API key
+PINATA_API_SECRET=...             # Pinata API secret (or PINATA_API_SECRT if using legacy naming)
+PINATA_JWT=...                    # Pinata JWT token (recommended for newer accounts)
 ```
 
 ### Installation
@@ -636,6 +812,29 @@ The Zora Coins SDK requires an API key to access coin data:
     NEXT_PUBLIC_ZORA_API_KEY=your-actual-api-key-here
     ```
 5. Restart your development server
+
+6. **Pinata API Setup** (Required for IPFS metadata uploads)
+
+The application uses Pinata for IPFS metadata uploads when creating coins:
+
+1. Create a free account at [https://pinata.cloud](https://pinata.cloud)
+2. Generate API credentials in your Pinata dashboard:
+    - **Option A (Recommended)**: Create a JWT token with appropriate permissions
+    - **Option B**: Use API Key + Secret (legacy method)
+3. Add the credentials to your `.env.local` file:
+
+    ```bash
+    # Option A: JWT Token (recommended)
+    PINATA_JWT=your-jwt-token-here
+
+    # Option B: API Key + Secret (legacy)
+    PINATA_API_KEY=your-api-key-here
+    PINATA_API_SECRET=your-api-secret-here
+    ```
+
+4. Restart your development server
+
+The metadata upload feature allows users to create JSON metadata files directly in the coin creation form, which are then uploaded to IPFS via Pinata before creating the coin.
 
 6. **Subgraph Setup**
 
@@ -674,6 +873,11 @@ GRAPH_API_KEY=...
 NEXT_PUBLIC_GRAPH_API_KEY=...
 NEXTAUTH_SECRET=...
 NEXTAUTH_URL=http://localhost:3000
+
+# Pinata IPFS service
+PINATA_API_KEY=your-pinata-api-key
+PINATA_API_SECRET=your-pinata-api-secret
+PINATA_JWT=your-pinata-jwt-token
 ```
 
 ## 🎯 Usage Examples
